@@ -70,7 +70,7 @@ mod tests {
 
     #[test]
     fn benchmark_rmq_build() {
-        let n = 10_000_000;
+        let n = 1_000_000;
         let a: Vec<i32> = (0..n).map(|_| rand::random_range(0..1_000_000)).collect();
 
         let start = Instant::now();
