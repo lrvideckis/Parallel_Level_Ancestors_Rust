@@ -1,0 +1,8 @@
+[package]
+name = "parallel_level_ancestors_rust"
+version = "0.1.0"
+edition = "2024"
+authors = ["Luke Videckis <lrvideckis@gmail.com>"]
+description = "An implementation of https://link.springer.com/chapter/10.1007/978-3-032-29003-8_29 in rust."
+
+[dependencies]
