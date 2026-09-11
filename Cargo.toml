@@ -6,3 +6,5 @@ authors = ["Luke Videckis <lrvideckis@gmail.com>"]
 description = "An implementation of https://link.springer.com/chapter/10.1007/978-3-032-29003-8_29 in rust."
 
 [dependencies]
+rand = "0.10.2"
+rayon = "1.12.0"
