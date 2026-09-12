@@ -67,30 +67,4 @@ mod tests {
             }
         }
     }
-
-    #[test]
-    fn benchmark_rmq_build() {
-        let n = 1_000_000;
-        let a: Vec<i32> = (0..n).map(|_| rand::random_range(0..1_000_000)).collect();
-
-        let start = Instant::now();
-        let _rmq_multi = RMQ::new(&a, |&x, &y| std::cmp::min(x, y));
-        let multi_duration = start.elapsed();
-
-        let single_thread_pool = rayon::ThreadPoolBuilder::new()
-            .num_threads(1)
-            .build()
-            .unwrap();
-
-        let start = Instant::now();
-        let _rmq_single = single_thread_pool.install(|| RMQ::new(&a, |&x, &y| std::cmp::min(x, y)));
-        let single_duration = start.elapsed();
-
-        println!("\n--- RMQ Build Benchmark (N = {}) ---", n);
-        println!("Multi-threaded time:  {:?}", multi_duration);
-        println!("Single-threaded time: {:?}", single_duration);
-
-        let speedup = single_duration.as_secs_f64() / multi_duration.as_secs_f64();
-        println!("Speedup: {:.2}x\n", speedup);
-    }
 }
