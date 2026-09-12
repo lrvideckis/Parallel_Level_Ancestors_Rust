@@ -4,7 +4,7 @@ The purpose is to help in understanding of the paper and to show correctness of 
 
 ---
 
-Note about parallel complexity: the paper assumes PRAM model where something like `(0..n).into_par_iter()` is O(n) work, O(1) span. But rayon crate implements this in O(n) work, O(logn) span due to recursive tree splitting. I'm pretty sure this implementation is actually O(log^2 n) span due to this, so it is a bit fudged due to this. Let's just sweep this under the rug.
+Note about parallel complexity: the paper assumes PRAM model where something like `(0..n).into_par_iter()` is O(n) work, O(1) span. But rayon crate implements this in O(n) work, O(logn) span due to recursive tree splitting. I'm pretty sure this implementation is actually O(log^2 n) span due to this, so it is a bit fudged. Let's just sweep this under the rug.
 
 ---
 
