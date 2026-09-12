@@ -1,7 +1,7 @@
-use rayon::prelude::*;
-use rayon::iter::once;
-use rayon_scan::ScanParallelIterator;
 use paradis_core::{BoundedParAccess, IntoParAccess};
+use rayon::iter::once;
+use rayon::prelude::*;
+use rayon_scan::ScanParallelIterator;
 
 pub struct JumpPointersModedLevel {
     parent: Vec<usize>,

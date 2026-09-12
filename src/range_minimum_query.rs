@@ -83,9 +83,7 @@ mod tests {
             .unwrap();
 
         let start = Instant::now();
-        let _rmq_single = single_thread_pool.install(|| {
-            RMQ::new(&a, |&x, &y| std::cmp::min(x, y))
-        });
+        let _rmq_single = single_thread_pool.install(|| RMQ::new(&a, |&x, &y| std::cmp::min(x, y)));
         let single_duration = start.elapsed();
 
         println!("\n--- RMQ Build Benchmark (N = {}) ---", n);
