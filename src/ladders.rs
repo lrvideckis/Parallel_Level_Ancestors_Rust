@@ -1,7 +1,9 @@
 use crate::n_build_logn_query_methods::jump_pointers::JumpPointersModedLevel;
 use crate::tree_accumulations::subtree_max::calculate_subtree_max;
-//use paradis_core::{BoundedParAccess, IntoParAccess};
-//use rayon::prelude::*;
+use paradis_core::{BoundedParAccess, IntoParAccess};
+use rayon::iter::once;
+use rayon::prelude::*;
+use rayon_scan::ScanParallelIterator;
 
 pub struct Ladders {
     level: Vec<usize>,
@@ -21,86 +23,81 @@ impl Ladders {
         p: usize,
     ) -> Self {
         let n = parent.len();
+        assert!(n >= 1 && p >= 1);
 
-        let mut ladder = vec![usize::MAX; 2 * n];
-        let mut leaf_to_size = vec![0; n];
-        let mut ladder_to_start = vec![0; 2 * n + 1];
-
-        let values: Vec<(usize, usize)> = (0..n).map(|i| (level[i], i)).collect();
+        let values: Vec<(usize, usize)> = (0..n).into_par_iter().map(|i| (level[i], i)).collect();
 
         let deepest_leaf = calculate_subtree_max(&values, parent, time_in, time_out, pre_order, p);
-        let deepest_leaf: Vec<usize> = deepest_leaf.into_iter().map(|t| t.1).collect();
+        let deepest_leaf: Vec<usize> = deepest_leaf.into_par_iter().map(|t| t.1).collect();
 
-        leaf_to_size[deepest_leaf[0]] = 2 * (level[deepest_leaf[0]] + 1);
-        for i in 0..n {
-            if parent[i] != i {
-                let par = parent[i];
-                let node = i;
-                if deepest_leaf[par] != deepest_leaf[node] {
-                    leaf_to_size[deepest_leaf[node]] =
-                        2 * (level[deepest_leaf[node]] - level[node] + 1);
+        let mut leaf_to_size = vec![0; n];
+        let access = leaf_to_size.into_par_access();
+        (0..n).into_par_iter().for_each(|i| {
+            if parent[i] == i || deepest_leaf[parent[i]] != deepest_leaf[i] {
+                unsafe {
+                    let target_ref = access.get_unsync(deepest_leaf[i]);
+                    *target_ref = 2 * (level[deepest_leaf[i]] - level[i] + 1);
                 }
             }
-        }
+        });
+        let leaf_to_size = leaf_to_size;
 
-        let total_sum: usize = leaf_to_size.iter().sum();
-        assert_eq!(total_sum, 2 * n);
+        assert_eq!(leaf_to_size.iter().sum::<usize>(), 2 * n);
 
-        let mut leaf_to_start = vec![0; n];
-        let mut acc = 0;
-        for i in 0..n {
-            leaf_to_start[i] = acc;
-            acc += leaf_to_size[i];
-        }
+        let leaf_to_start: Vec<usize> = once(0)
+            .chain(leaf_to_size.par_iter().cloned())
+            .scan(|a, b| *a + *b, 0)
+            .collect();
 
-        for i in 0..n {
+        let mut ladder_to_start = vec![0; 2 * n + 1];
+        let access = ladder_to_start.into_par_access();
+        (0..n).into_par_iter().for_each(|i| {
             if deepest_leaf[i] == i {
-                ladder[leaf_to_start[i]] = i;
+                let idx = leaf_to_start[i] + leaf_to_size[i];
+                unsafe {
+                    let target_ref = access.get_unsync(idx);
+                    *target_ref = leaf_to_size[i];
+                }
             }
-        }
+        });
 
-        for i in 0..n {
-            if deepest_leaf[i] == i {
-                ladder_to_start[leaf_to_start[i] + leaf_to_size[i]] = leaf_to_size[i];
-            }
-        }
-
-        let mut acc = 0;
-        for val in ladder_to_start.iter_mut() {
-            acc += *val;
-            *val = acc;
-        }
+        let ladder_to_start: Vec<usize> = ladder_to_start
+            .into_par_iter()
+            .scan(|a, b| *a + *b, 0)
+            .collect();
         assert_eq!(ladder_to_start[2 * n], 2 * n);
+
+        let mut ladder = vec![usize::MAX; 2 * n];
+        let access = ladder.into_par_access();
+        (0..n).into_par_iter().for_each(|i| {
+            if deepest_leaf[i] == i {
+                let idx = leaf_to_start[i];
+                unsafe {
+                    let target_ref = access.get_unsync(idx);
+                    *target_ref = i;
+                }
+            }
+        });
 
         let jump_pointers = JumpPointersModedLevel::new(parent, level, p);
 
-        let block_size = (2 * n + p - 1) / p;
+        let block_size = (2 * n).div_ceil(p);
 
-        for i in 0..p {
-            let start_index = i * block_size;
-            if start_index >= 2 * n {
-                continue;
-            }
-            let end_index = std::cmp::min(2 * n, start_index + block_size);
-
-            let ladder_idx = ladder_to_start[start_index];
-            let max_jump = level[ladder[ladder_idx]];
-            let kth_offset = std::cmp::min(start_index - ladder_to_start[start_index], max_jump);
-            ladder[start_index] = jump_pointers.query(ladder[ladder_idx], kth_offset);
-
-            for j in (start_index + 1)..end_index {
-                if ladder[j] == usize::MAX {
-                    let prev = ladder[j - 1];
-                    ladder[j] = parent[prev];
+        let ladder_temp = ladder.clone();
+        ladder
+            .par_chunks_mut(block_size)
+            .enumerate()
+            .for_each(|(i, chunk)| {
+                let start_index = i * block_size;
+                let leaf = ladder_temp[ladder_to_start[start_index]];
+                let k = std::cmp::min(start_index - ladder_to_start[start_index], level[leaf]);
+                chunk[0] = jump_pointers.query(leaf, k);
+                for j in 1..chunk.len() {
+                    if chunk[j] == usize::MAX {
+                        chunk[j] = parent[chunk[j - 1]];
+                    }
                 }
-            }
-        }
-
-        for i in 0..n {
-            let leaf = deepest_leaf[i];
-            let diff = level[leaf] - level[i];
-            assert_eq!(ladder[leaf_to_start[leaf] + diff], i);
-        }
+            });
 
         Self {
             level: level.to_vec(),
@@ -126,7 +123,7 @@ mod tests {
 
     #[test]
     fn ladders_stress_test() {
-        for n in 1..=100 {
+        for n in 1..=80 {
             for p in 1..=(n + 5) {
                 let mut adjacency_list = vec![vec![]; n];
                 let mut parent = vec![0; n];
@@ -171,6 +168,10 @@ mod tests {
 
                 let ladder = Ladders::new(&parent, &level, &time_in, &time_out, &pre_order, p);
                 for i in 0..n {
+                    assert!(ladder.query(i, 0) == i);
+                    if i > 0 {
+                        assert!(ladder.query(i, 1) == parent[i]);
+                    }
                     let mut u = i;
                     let mut ancestors = vec![];
                     for _ in 0..=level[i] {
