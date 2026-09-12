@@ -1,5 +1,5 @@
-use rayon::prelude::*;
 use crate::range_minimum_query::RMQ;
+use rayon::prelude::*;
 
 pub fn calculate_subtree_max<T, F>(
     values: &[T],
@@ -85,7 +85,10 @@ mod tests {
                 ) -> i32 {
                     let mut curr = values[node];
                     for &child in &adjacency_list[node] {
-                        curr = std::cmp::max(curr, compute_naive(child, adjacency_list, values, expected));
+                        curr = std::cmp::max(
+                            curr,
+                            compute_naive(child, adjacency_list, values, expected),
+                        );
                     }
                     expected[node] = curr;
                     curr
