@@ -1,3 +1,27 @@
 An implementation of https://link.springer.com/chapter/10.1007/978-3-032-29003-8_29 in rust.
 
 The purpose is to help in understanding of the paper and to show correctness of the paper, not to be the most optimized implementation. So this implementation follows the details in the paper as closely as possible.
+
+---
+
+Note about use of unsafe: Consider the following problem: a permutation of 0..=n-1 is stored in p. Calculate the inverse permutation in p_inv. Sequentially it is trivial:
+
+```
+for i in 0..n {
+    p_inv[p[i]] = i;
+}
+```
+
+Now how to do this in parallel? We know there are no race conditions when writing to p_inv, but the borrow checker doesn't know this. So we need unsafe. I decided on the paradis crate:
+
+```
+let mut p_inv = vec![0, n];
+let access = p_inv.into_par_access();
+(0..n).into_par_iter().for_each(|i| {
+    unsafe {
+        let ref = access.get_unsync(p[i]);
+        *ref = i;
+    }
+});
+
+```
