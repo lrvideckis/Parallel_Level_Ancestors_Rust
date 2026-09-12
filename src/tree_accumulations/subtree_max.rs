@@ -1,36 +1,5 @@
 use rayon::prelude::*;
-use std::cmp::max;
-
-pub struct RMQ<T, F> {
-    t: Vec<Vec<T>>,
-    op: F,
-}
-
-impl<T: Clone + Send + Sync, F: Fn(&T, &T) -> T + Send + Sync> RMQ<T, F> {
-    pub fn new(a: &[T], op: F) -> Self {
-        let mut t = vec![a.to_vec(); 1];
-        let mut i = 0;
-        while (2 << i) <= a.len() {
-            let prev = &t[i];
-            let shift = 1 << i;
-            let layer_len = prev.len() - shift;
-
-            let next_layer: Vec<T> = (0..layer_len)
-                .into_par_iter()
-                .map(|j| op(&prev[j], &prev[j + shift]))
-                .collect();
-
-            t.push(next_layer);
-            i += 1;
-        }
-        Self { t, op }
-    }
-
-    pub fn query(&self, range: std::ops::Range<usize>) -> T {
-        let lg = range.len().ilog2() as usize;
-        (self.op)(&self.t[lg][range.start], &self.t[lg][range.end - (1 << lg)])
-    }
-}
+use crate::range_minimum_query::RMQ;
 
 pub fn calculate_subtree_max<T, F>(
     values: &[T],
@@ -56,10 +25,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::Rng;
 
     #[test]
-    fn unit_and_stress_test() {
+    fn subtree_max_stress_test() {
         for n in 1..=100 {
             for _p in 1..=(n + 5) {
                 let mut adjacency_list = vec![vec![]; n];
@@ -105,7 +73,7 @@ mod tests {
 
                 let subtree_max_rmq =
                     calculate_subtree_max(&values, &time_in, &time_out, &pre_order, |&x, &y| {
-                        max(x, y)
+                        std::cmp::max(x, y)
                     });
 
                 let mut expected = vec![0; n];
@@ -117,7 +85,7 @@ mod tests {
                 ) -> i32 {
                     let mut curr = values[node];
                     for &child in &adjacency_list[node] {
-                        curr = max(curr, compute_naive(child, adjacency_list, values, expected));
+                        curr = std::cmp::max(curr, compute_naive(child, adjacency_list, values, expected));
                     }
                     expected[node] = curr;
                     curr
