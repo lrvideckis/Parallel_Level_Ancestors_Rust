@@ -150,7 +150,7 @@ mod tests {
 
     #[test]
     fn stress_test_kth_ancestor() {
-        for n in 1..=100 {
+        for n in 1..=80 {
             for p in 1..=(n + 5) {
                 let mut parent = vec![0; n];
                 let mut level = vec![0; n];

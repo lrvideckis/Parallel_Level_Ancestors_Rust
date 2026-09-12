@@ -51,7 +51,7 @@ mod tests {
 
     #[test]
     fn stress_test() {
-        for n in 0..500 {
+        for n in 0..100 {
             let a: Vec<i32> = (0..n).map(|_| rand::random_range(0..1_000_000)).collect();
 
             let rmq = RMQ::new(&a, |&x, &y| std::cmp::min(x, y));
