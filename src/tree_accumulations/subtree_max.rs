@@ -1,5 +1,6 @@
-//use crate::range_minimum_query::RMQ;
-//use rayon::prelude::*;
+use crate::range_minimum_query::RMQ;
+use paradis_core::{BoundedParAccess, IntoParAccess};
+use rayon::prelude::*;
 //use std::cmp::{max, min};
 //use rand::{thread_rng, Rng};
 
@@ -15,102 +16,81 @@ where
     T: Ord + Clone + Send + Sync,
 {
     let n = values.len();
-    if n == 0 {
-        return vec![];
-    }
+    assert!(n >= 1 && p >= 1);
+
+    let mut prefix_of_block: Vec<T> = (0..n)
+        .into_par_iter()
+        .map(|i| values[pre_order[i]].clone())
+        .collect();
+
+    let mut suffix_of_block = prefix_of_block.clone();
+
+    let b = n.div_ceil(p);
+    assert!(b >= 1);
+
+    prefix_of_block.par_chunks_mut(b).for_each(|chunk| {
+        let len = chunk.len();
+        for j in 1..len {
+            chunk[j] = std::cmp::max(chunk[j].clone(), chunk[j - 1].clone());
+        }
+    });
+    suffix_of_block.par_chunks_mut(b).for_each(|chunk| {
+        let len = chunk.len();
+        if len > 1 {
+            for j in (0..len - 1).rev() {
+                chunk[j] = std::cmp::max(chunk[j].clone(), chunk[j + 1].clone());
+            }
+        }
+    });
 
     let mut subtree_max = values.to_vec();
-
-    let mut prefix_of_block = vec![values[0].clone(); n];
-    let mut suffix_of_block = vec![values[0].clone(); n];
-    for i in 0..n {
-        prefix_of_block[i] = values[pre_order[i]].clone();
-        suffix_of_block[i] = values[pre_order[i]].clone();
-    }
-
-    let b = (n + p - 1) / p;
-    if b == 0 {
-        return subtree_max;
-    }
-
-    for i in 0..p {
+    let access = subtree_max.into_par_access();
+    (0..p).into_par_iter().for_each(|i| {
         let start_idx = i * b;
         if start_idx >= n {
-            continue;
-        }
-        let end_idx = std::cmp::min((i + 1) * b, n);
-        for j in (start_idx + 1)..end_idx {
-            prefix_of_block[j] =
-                std::cmp::max(prefix_of_block[j].clone(), prefix_of_block[j - 1].clone());
-        }
-        for j in (start_idx..(end_idx - 1)).rev() {
-            suffix_of_block[j] =
-                std::cmp::max(suffix_of_block[j].clone(), suffix_of_block[j + 1].clone());
-        }
-    }
-
-    for i in 0..p {
-        let start_idx = i * b;
-        if start_idx >= n {
-            continue;
+            return;
         }
         let end_idx = std::cmp::min((i + 1) * b, n);
         for j in (start_idx..end_idx).rev() {
             let node = pre_order[j];
             let par = parent[node];
             if time_in[par] / b == (time_out[par] - 1) / b {
-                subtree_max[par] =
-                    std::cmp::max(subtree_max[par].clone(), subtree_max[node].clone());
+                unsafe {
+                    let par_ref = access.get_unsync(par);
+                    let node_ref = access.get_unsync(node);
+                    *par_ref = std::cmp::max(par_ref.clone(), node_ref.clone());
+                }
             }
         }
-    }
+    });
 
-    let mut sparse_table = vec![vec![values[0].clone(); p]];
-    for i in 0..p {
-        if i * b < n {
-            sparse_table[0][i] = suffix_of_block[i * b].clone();
-        }
-    }
+    let block_values: Vec<T> = (0..p)
+        .into_par_iter()
+        .map(|i| {
+            if i * b < n {
+                suffix_of_block[i * b].clone()
+            } else {
+                values[0].clone()
+            }
+        })
+        .collect();
 
-    let mut i_row = 0;
-    while (2 << i_row) <= p {
-        let curr_size = p - (2 << i_row) + 1;
-        let mut next_row = vec![values[0].clone(); curr_size];
-        for j in 0..curr_size {
-            next_row[j] = std::cmp::max(
-                sparse_table[i_row][j].clone(),
-                sparse_table[i_row][j + (1 << i_row)].clone(),
-            );
-        }
-        sparse_table.push(next_row);
-        i_row += 1;
-    }
+    let rmq = RMQ::new(&block_values, |x, y| std::cmp::max(x, y).clone());
 
-    let sparse_table_query = |l: usize, r: usize, sparse_table: &[Vec<T>]| -> T {
-        let lg = usize::BITS as usize - 1 - (r - l).leading_zeros() as usize;
-        std::cmp::max(
-            sparse_table[lg][l].clone(),
-            sparse_table[lg][r - (1 << lg)].clone(),
-        )
-    };
-
-    for i in 0..n {
+    subtree_max.par_iter_mut().enumerate().for_each(|(i, val)| {
         let l = time_in[i];
         let r = time_out[i];
         assert!(l < r);
 
         if l / b == (r - 1) / b {
-            continue;
+            return;
         }
 
-        subtree_max[i] = std::cmp::max(suffix_of_block[l].clone(), prefix_of_block[r - 1].clone());
+        *val = std::cmp::max(suffix_of_block[l].clone(), prefix_of_block[r - 1].clone());
         if l / b + 1 < r / b {
-            subtree_max[i] = std::cmp::max(
-                subtree_max[i].clone(),
-                sparse_table_query(l / b + 1, r / b, &sparse_table),
-            );
+            *val = std::cmp::max(val.clone(), rmq.query(l / b + 1..r / b));
         }
-    }
+    });
 
     subtree_max
 }
