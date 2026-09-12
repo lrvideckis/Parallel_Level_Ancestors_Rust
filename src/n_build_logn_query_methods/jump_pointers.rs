@@ -13,8 +13,9 @@ pub struct JumpPointersModedLevel {
     jump: Vec<Vec<usize>>,
 }
 
+// approach described here:
+// https://codeforces.com/blog/entry/100826#comment-1013981
 impl JumpPointersModedLevel {
-    /// Constructs the O(N/P) Kth-Ancestor jump pointer structure.
     pub fn new(parent: &[usize], level: &[usize], p: usize) -> Self {
         let n = parent.len();
         assert!(n >= 1 && p >= 1);
@@ -114,7 +115,6 @@ impl JumpPointersModedLevel {
         }
     }
 
-    /// Queries the k-th ancestor of node v.
     pub fn query(&self, mut v: usize, mut k: usize) -> usize {
         assert!(k <= self.level[v]);
         while k > 0 && self.level[v] % self.mod_val != self.mod_value_with_least_nodes {
