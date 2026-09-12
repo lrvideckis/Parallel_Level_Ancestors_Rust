@@ -16,6 +16,11 @@ jobs:
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Check code formatting
+        run: cargo fmt -- --check
 
       - name: Run cargo test
         run: cargo test --verbose
