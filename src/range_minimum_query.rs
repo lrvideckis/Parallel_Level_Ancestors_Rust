@@ -34,7 +34,6 @@ impl<T: Clone + Send + Sync, F: Fn(&T, &T) -> T + Send + Sync> RMQ<T, F> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::Instant;
 
     #[test]
     fn unit_test() {
