@@ -110,10 +110,10 @@ impl Ladders {
 
     pub fn query(&self, v: usize, k: usize) -> usize {
         assert!(k <= self.level[v]);
-        let anc_d = self.level[v] - k;
         let leaf = self.deepest_leaf[v];
-        assert!(self.level[leaf] - anc_d < self.leaf_to_size[leaf]);
-        return self.ladder[self.leaf_to_start[leaf] + self.level[leaf] - anc_d];
+        let difference = self.level[leaf] - self.level[v];
+        assert!(difference + k < self.leaf_to_size[leaf]);
+        return self.ladder[self.leaf_to_start[leaf] + difference + k];
     }
 }
 
