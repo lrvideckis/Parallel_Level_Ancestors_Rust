@@ -23,8 +23,7 @@ let mut p_inv = vec![0, n];
 let access = p_inv.into_par_access();
 (0..n).into_par_iter().for_each(|i| {
     unsafe {
-        let ref = access.get_unsync(p[i]);
-        *ref = i;
+        *access.get_unsync(p[i]) = i;
     }
 });
 ```
