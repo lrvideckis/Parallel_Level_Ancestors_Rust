@@ -23,5 +23,5 @@ let access = p_inv.into_par_access();
         *ref = i;
     }
 });
-
 ```
+There are some places in the paper where we can prove there are no race conditions, but I couldn't think of how to implement it in safe rust.
