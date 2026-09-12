@@ -1,8 +1,6 @@
 use crate::range_minimum_query::RMQ;
 use paradis_core::{BoundedParAccess, IntoParAccess};
 use rayon::prelude::*;
-//use std::cmp::{max, min};
-//use rand::{thread_rng, Rng};
 
 pub fn calculate_subtree_max<T>(
     values: &[T],
