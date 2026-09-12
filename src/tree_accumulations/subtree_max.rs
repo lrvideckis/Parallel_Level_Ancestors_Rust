@@ -34,10 +34,8 @@ where
     });
     suffix_of_block.par_chunks_mut(b).for_each(|chunk| {
         let len = chunk.len();
-        if len > 1 {
-            for j in (0..len - 1).rev() {
-                chunk[j] = std::cmp::max(chunk[j].clone(), chunk[j + 1].clone());
-            }
+        for j in (0..len - 1).rev() {
+            chunk[j] = std::cmp::max(chunk[j].clone(), chunk[j + 1].clone());
         }
     });
 
