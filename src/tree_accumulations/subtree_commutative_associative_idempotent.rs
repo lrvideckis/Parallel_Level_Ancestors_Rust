@@ -113,6 +113,7 @@ mod tests {
                 let mut time_in = vec![0; n];
                 let mut time_out = vec![0; n];
                 let mut pre_order = vec![0; n];
+                let mut subtree_max_naive = values.clone();
 
                 {
                     let mut timer = 0;
@@ -122,13 +123,24 @@ mod tests {
                         time_in: &mut [usize],
                         time_out: &mut [usize],
                         pre_order: &mut [usize],
+                        subtree_max_naive: &mut [i32],
                         adjacency_list: &[Vec<usize>],
                     ) {
                         time_in[node] = *timer;
                         pre_order[*timer] = node;
                         *timer += 1;
                         for &child in &adjacency_list[node] {
-                            dfs(child, timer, time_in, time_out, pre_order, adjacency_list);
+                            dfs(
+                                child,
+                                timer,
+                                time_in,
+                                time_out,
+                                pre_order,
+                                subtree_max_naive,
+                                adjacency_list,
+                            );
+                            subtree_max_naive[node] =
+                                std::cmp::max(subtree_max_naive[node], subtree_max_naive[child]);
                         }
                         time_out[node] = *timer;
                     }
@@ -138,11 +150,12 @@ mod tests {
                         &mut time_in,
                         &mut time_out,
                         &mut pre_order,
+                        &mut subtree_max_naive,
                         &adjacency_list,
                     );
                 }
 
-                let subtree_max_block = subtree_commutative_associative_idempotent(
+                let subtree_max = subtree_commutative_associative_idempotent(
                     &values,
                     |&x, &y| std::cmp::max(x, y),
                     &parent,
@@ -152,26 +165,7 @@ mod tests {
                     p,
                 );
 
-                let mut expected = vec![0; n];
-                fn compute_naive(
-                    node: usize,
-                    adjacency_list: &[Vec<usize>],
-                    values: &[i32],
-                    expected: &mut [i32],
-                ) -> i32 {
-                    let mut curr = values[node];
-                    for &child in &adjacency_list[node] {
-                        curr = std::cmp::max(
-                            curr,
-                            compute_naive(child, adjacency_list, values, expected),
-                        );
-                    }
-                    expected[node] = curr;
-                    curr
-                }
-                compute_naive(0, &adjacency_list, &values, &mut expected);
-
-                assert_eq!(subtree_max_block, expected);
+                assert_eq!(subtree_max, subtree_max_naive);
             }
         }
     }
