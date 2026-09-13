@@ -43,8 +43,8 @@ impl JumpPointersModedLevel {
 
         assert!(frequency[mod_val * p] == n);
 
-        let frequency_count = |mod_value: usize| -> usize {
-            frequency[(mod_value + 1) * p] - frequency[mod_value * p]
+        let frequency_count = |j: usize| -> usize {
+            frequency[(j + 1) * p] - frequency[j * p]
         };
 
         let mut mod_value_with_least_nodes = 0;
