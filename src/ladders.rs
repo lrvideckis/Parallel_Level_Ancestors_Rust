@@ -108,11 +108,11 @@ impl Ladders {
         }
     }
 
-    // assert fails when ladder is not long enough
     pub fn kth_parent(&self, v: usize, k: usize) -> usize {
         assert!(k <= self.level[v]);
         let leaf = self.deepest_leaf[v];
         let difference = self.level[leaf] - self.level[v];
+        // fails when ladder is not long enough
         assert!(difference + k < self.leaf_to_size[leaf]);
         self.ladder[self.leaf_to_start[leaf] + difference + k]
     }
