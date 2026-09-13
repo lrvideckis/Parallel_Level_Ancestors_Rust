@@ -27,7 +27,15 @@ impl Ladders {
 
         let values: Vec<(usize, usize)> = (0..n).into_par_iter().map(|i| (level[i], i)).collect();
 
-        let deepest_leaf = calculate_subtree_max(&values, parent, time_in, time_out, pre_order, p);
+        let deepest_leaf = calculate_subtree_max(
+            &values,
+            |&x, &y| std::cmp::max(x, y),
+            parent,
+            time_in,
+            time_out,
+            pre_order,
+            p,
+        );
         let deepest_leaf: Vec<usize> = deepest_leaf.into_par_iter().map(|t| t.1).collect();
 
         let mut leaf_to_size = vec![0; n];

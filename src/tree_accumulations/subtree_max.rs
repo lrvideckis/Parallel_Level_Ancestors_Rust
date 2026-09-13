@@ -2,8 +2,9 @@ use crate::sparse_tables::sparse_table::SparseTable;
 use paradis_core::{BoundedParAccess, IntoParAccess};
 use rayon::prelude::*;
 
-pub fn calculate_subtree_max<T>(
+pub fn calculate_subtree_max<T, F>(
     values: &[T],
+    op: F,
     parent: &[usize],
     time_in: &[usize],
     time_out: &[usize],
@@ -11,7 +12,8 @@ pub fn calculate_subtree_max<T>(
     p: usize,
 ) -> Vec<T>
 where
-    T: Ord + Clone + Send + Sync,
+    T: Clone + Send + Sync,
+    F: Fn(&T, &T) -> T + Send + Sync,
 {
     let n = values.len();
     assert!(n >= 1 && p >= 1);
@@ -29,13 +31,13 @@ where
     prefix_of_block.par_chunks_mut(b).for_each(|chunk| {
         let len = chunk.len();
         for j in 1..len {
-            chunk[j] = std::cmp::max(chunk[j].clone(), chunk[j - 1].clone());
+            chunk[j] = op(&chunk[j], &chunk[j - 1]);
         }
     });
     suffix_of_block.par_chunks_mut(b).for_each(|chunk| {
         let len = chunk.len();
         for j in (0..len - 1).rev() {
-            chunk[j] = std::cmp::max(chunk[j].clone(), chunk[j + 1].clone());
+            chunk[j] = op(&chunk[j], &chunk[j + 1]);
         }
     });
 
@@ -54,7 +56,7 @@ where
                 unsafe {
                     let par_ref = access.get_unsync(par);
                     let node_ref = access.get_unsync(node);
-                    *par_ref = std::cmp::max(par_ref.clone(), node_ref.clone());
+                    *par_ref = op(&par_ref, &node_ref);
                 }
             }
         }
@@ -71,7 +73,7 @@ where
         })
         .collect();
 
-    let sparse_table = SparseTable::new(&block_values, |x, y| std::cmp::max(x, y).clone());
+    let sparse_table = SparseTable::new(&block_values, |x, y| op(x, y));
 
     subtree_max.par_iter_mut().enumerate().for_each(|(i, val)| {
         let l = time_in[i];
@@ -82,9 +84,9 @@ where
             return;
         }
 
-        *val = std::cmp::max(suffix_of_block[l].clone(), prefix_of_block[r - 1].clone());
+        *val = op(&suffix_of_block[l], &prefix_of_block[r - 1]);
         if l / b + 1 < r / b {
-            *val = std::cmp::max(val.clone(), sparse_table.query(l / b + 1..r / b));
+            *val = op(&val, &sparse_table.query(l / b + 1..r / b));
         }
     });
 
@@ -140,8 +142,15 @@ mod tests {
                     );
                 }
 
-                let subtree_max_block =
-                    calculate_subtree_max(&values, &parent, &time_in, &time_out, &pre_order, p);
+                let subtree_max_block = calculate_subtree_max(
+                    &values,
+                    |&x, &y| std::cmp::max(x, y),
+                    &parent,
+                    &time_in,
+                    &time_out,
+                    &pre_order,
+                    p,
+                );
 
                 let mut expected = vec![0; n];
                 fn compute_naive(
