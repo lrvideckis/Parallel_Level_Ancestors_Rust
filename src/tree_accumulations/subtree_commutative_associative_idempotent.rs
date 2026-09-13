@@ -1,4 +1,4 @@
-use crate::sparse_tables::sparse_table::SparseTable;
+use crate::helpers::sparse_table::SparseTable;
 use paradis_core::{BoundedParAccess, IntoParAccess};
 use rayon::prelude::*;
 

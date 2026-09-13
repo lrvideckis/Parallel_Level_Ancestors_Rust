@@ -1,4 +1,4 @@
-use crate::ladders::Ladders;
+use crate::helpers::ladders::Ladders;
 use paradis_core::{BoundedParAccess, IntoParAccess};
 use rayon::prelude::*;
 

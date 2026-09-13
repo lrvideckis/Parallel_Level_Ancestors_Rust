@@ -1,4 +1,4 @@
-use crate::ladders::Ladders;
+use crate::helpers::ladders::Ladders;
 use rayon::prelude::*;
 
 pub struct Variation2 {
