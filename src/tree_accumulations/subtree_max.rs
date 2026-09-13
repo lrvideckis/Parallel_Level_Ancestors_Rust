@@ -56,7 +56,7 @@ where
                 unsafe {
                     let par_ref = access.get_unsync(par);
                     let node_ref = access.get_unsync(node);
-                    *par_ref = op(&par_ref, &node_ref);
+                    *par_ref = op(par_ref, node_ref);
                 }
             }
         }
@@ -86,7 +86,7 @@ where
 
         *val = op(&suffix_of_block[l], &prefix_of_block[r - 1]);
         if l / b + 1 < r / b {
-            *val = op(&val, &sparse_table.query(l / b + 1..r / b));
+            *val = op(val, &sparse_table.query(l / b + 1..r / b));
         }
     });
 
