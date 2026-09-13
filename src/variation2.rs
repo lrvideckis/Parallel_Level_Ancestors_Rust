@@ -31,13 +31,14 @@ impl Variation2 {
             .enumerate()
             .for_each(|(i, chunk)| {
                 for j in 0..chunk.len() {
-                    if i == 0 && j == 0 {
+                    let original_idx = i * block_size + j;
+                    if original_idx == 0 {
                         continue;
                     }
-                    let mut u = parent[euler_tour[i * block_size + j]];
+                    let mut u = parent[euler_tour[original_idx]];
                     chunk[j].push(u);
                     let mut k = 1;
-                    while k < (i * block_size + j).isolate_lowest_one() {
+                    while k < original_idx.isolate_lowest_one() {
                         if k <= level[u] {
                             u = ladders.query(u, k);
                         }
