@@ -36,22 +36,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn unit_test() {
-        let a = [1, 3, 2, 4, 5];
-        let rmq = RMQ::new(&a, |&x, &y| std::cmp::min(x, y));
-        let n = a.len();
-        for i in 0..n {
-            let mut naive = a[i];
-            for j in i..n {
-                naive = std::cmp::min(naive, a[j]);
-                assert_eq!(naive, rmq.query(i..j + 1));
-            }
-        }
-    }
-
-    #[test]
     fn stress_test() {
-        for n in 0..100 {
+        for n in 0..500 {
             let a: Vec<i32> = (0..n).map(|_| rand::random_range(0..1_000_000)).collect();
 
             let rmq = RMQ::new(&a, |&x, &y| std::cmp::min(x, y));

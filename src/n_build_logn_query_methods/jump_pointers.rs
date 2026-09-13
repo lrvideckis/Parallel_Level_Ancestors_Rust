@@ -147,7 +147,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn stress_test_kth_ancestor() {
+    fn stress_test() {
         for n in 1..=80 {
             for p in 1..=(n + 5) {
                 let mut parent = vec![0; n];

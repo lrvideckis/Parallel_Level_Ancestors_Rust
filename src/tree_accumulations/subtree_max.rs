@@ -96,7 +96,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn subtree_max_stress_test() {
+    fn stress_test() {
         for n in 1..=100 {
             for p in 1..=(n + 5) {
                 let mut adjacency_list = vec![vec![]; n];

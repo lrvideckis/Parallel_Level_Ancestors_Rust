@@ -122,7 +122,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ladders_stress_test() {
+    fn stress_test() {
         for n in 1..=80 {
             for p in 1..=(n + 5) {
                 let mut adjacency_list = vec![vec![]; n];
