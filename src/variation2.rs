@@ -1,8 +1,5 @@
 use crate::ladders::Ladders;
-//use paradis_core::{BoundedParAccess, IntoParAccess};
-//use rayon::iter::once;
-//use rayon::prelude::*;
-//use rayon_scan::ScanParallelIterator;
+use rayon::prelude::*;
 
 pub struct Variation2 {
     level: Vec<usize>,
@@ -28,22 +25,29 @@ impl Variation2 {
 
         let ladders = Ladders::new(parent, level, time_in, time_out, pre_order, p);
 
+        let block_size = (2 * n).div_ceil(p);
         let mut jump: Vec<Vec<usize>> = vec![vec![]; 2 * n];
-        for i in 1..2 * n {
-            let mut u = parent[euler_tour[i]];
-            jump[i].push(u);
-            let mut j = 1;
-            while j < i.isolate_lowest_one() {
-                //while j < i & i.wrapping_neg() {
-                if j <= level[u] {
-                    u = ladders.query(u, j);
+        jump.par_chunks_mut(block_size)
+            .enumerate()
+            .for_each(|(i, chunk)| {
+                for j in 0..chunk.len() {
+                    if i == 0 && j == 0 {
+                        continue;
+                    }
+                    let mut u = parent[euler_tour[i * block_size + j]];
+                    chunk[j].push(u);
+                    let mut k = 1;
+                    while k < (i * block_size + j).isolate_lowest_one() {
+                        if k <= level[u] {
+                            u = ladders.query(u, k);
+                        }
+                        //push even when u goes above root so that we can verify total number of jump
+                        //pointers
+                        chunk[j].push(u);
+                        k *= 2;
+                    }
                 }
-                //push even when u goes above root so that we can verify total number of jump
-                //pointers
-                jump[i].push(u);
-                j *= 2;
-            }
-        }
+            });
 
         assert_eq!(
             jump.iter().map(|v| v.len()).sum::<usize>(),
