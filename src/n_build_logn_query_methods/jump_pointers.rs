@@ -113,7 +113,7 @@ impl JumpPointersModedLevel {
         }
     }
 
-    pub fn query(&self, mut v: usize, mut k: usize) -> usize {
+    pub fn kth_parent(&self, mut v: usize, mut k: usize) -> usize {
         assert!(k <= self.level[v]);
         while k > 0 && self.level[v] % self.mod_val != self.mod_value_with_least_nodes {
             v = self.parent[v];
@@ -163,7 +163,7 @@ mod tests {
                 for i in 0..n {
                     let mut kth_parent_naive = i;
                     for k in 0..=level[i] {
-                        let ans = structure.query(i, k);
+                        let ans = structure.kth_parent(i, k);
                         assert_eq!(ans, kth_parent_naive);
                         kth_parent_naive = parent[kth_parent_naive];
                     }

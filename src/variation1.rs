@@ -52,7 +52,7 @@ impl Variation1 {
                         node = jump[r_ch][j];
                     }
                     jump[i][j] =
-                        ladders.query(node, std::cmp::min(1 << (rnz - 1 + j), level[node]));
+                        ladders.kth_parent(node, std::cmp::min(1 << (rnz - 1 + j), level[node]));
                 }
                 i += 2 << rnz;
             }
@@ -66,7 +66,7 @@ impl Variation1 {
         }
     }
 
-    pub fn query(&self, v: usize, k: usize) -> usize {
+    pub fn kth_parent(&self, v: usize, k: usize) -> usize {
         assert!(k <= self.level[v]);
         if k == 0 {
             v
@@ -81,7 +81,7 @@ impl Variation1 {
                 self.jump[la_bt][0]
             };
             self.ladders
-                .query(jump_node, self.level[jump_node] - (self.level[v] - k))
+                .kth_parent(jump_node, self.level[jump_node] - (self.level[v] - k))
         }
     }
 }
@@ -172,7 +172,7 @@ mod tests {
                 for i in 0..n {
                     let mut kth_parent_naive = i;
                     for k in 0..=level[i] {
-                        let ans = variation1.query(i, k);
+                        let ans = variation1.kth_parent(i, k);
                         assert_eq!(ans, kth_parent_naive);
                         kth_parent_naive = parent[kth_parent_naive];
                     }

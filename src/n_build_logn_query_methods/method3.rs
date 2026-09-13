@@ -47,7 +47,7 @@ impl Method3 {
     }
 
     // seg tree walk in this style: https://codeforces.com/blog/entry/118682
-    pub fn query(&self, v: usize, k: usize) -> usize {
+    pub fn kth_parent(&self, v: usize, k: usize) -> usize {
         assert!(k <= self.level[v]);
         let mut l = 1;
         let mut r = self.time_in[v] + 1;
@@ -108,7 +108,7 @@ mod tests {
             for i in 0..n {
                 let mut kth_parent_naive = i;
                 for k in 0..=level[i] {
-                    assert_eq!(kth_parent_naive, ancestor.query(i, k));
+                    assert_eq!(kth_parent_naive, ancestor.kth_parent(i, k));
                     kth_parent_naive = parent[kth_parent_naive];
                 }
             }

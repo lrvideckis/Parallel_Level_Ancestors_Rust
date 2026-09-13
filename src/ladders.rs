@@ -91,7 +91,7 @@ impl Ladders {
                 let start_index = i * block_size;
                 let leaf = ladder_temp[ladder_to_start[start_index]];
                 let k = std::cmp::min(start_index - ladder_to_start[start_index], level[leaf]);
-                chunk[0] = jump_pointers.query(leaf, k);
+                chunk[0] = jump_pointers.kth_parent(leaf, k);
                 for j in 1..chunk.len() {
                     if chunk[j] == usize::MAX {
                         chunk[j] = parent[chunk[j - 1]];
@@ -108,7 +108,7 @@ impl Ladders {
         }
     }
 
-    pub fn query(&self, v: usize, k: usize) -> usize {
+    pub fn kth_parent(&self, v: usize, k: usize) -> usize {
         assert!(k <= self.level[v]);
         let leaf = self.deepest_leaf[v];
         let difference = self.level[leaf] - self.level[v];
@@ -168,9 +168,9 @@ mod tests {
 
                 let ladder = Ladders::new(&parent, &level, &time_in, &time_out, &pre_order, p);
                 for i in 0..n {
-                    assert!(ladder.query(i, 0) == i);
+                    assert!(ladder.kth_parent(i, 0) == i);
                     if i > 0 {
-                        assert!(ladder.query(i, 1) == parent[i]);
+                        assert!(ladder.kth_parent(i, 1) == parent[i]);
                     }
                     let mut u = i;
                     let mut ancestors = vec![];
@@ -180,7 +180,7 @@ mod tests {
                     }
                     assert!(ancestors.len() == level[i] + 1);
                     for k in 0..=level[i] / 2 {
-                        assert!(ladder.query(ancestors[k], k) == ancestors[2 * k]);
+                        assert!(ladder.kth_parent(ancestors[k], k) == ancestors[2 * k]);
                     }
                 }
             }

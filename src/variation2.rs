@@ -40,7 +40,7 @@ impl Variation2 {
                     let mut k = 1;
                     while k < original_idx.isolate_lowest_one() {
                         if k <= level[u] {
-                            u = ladders.query(u, k);
+                            u = ladders.kth_parent(u, k);
                         }
                         //push even when u goes above root so that we can verify total number of jump
                         //pointers
@@ -63,7 +63,7 @@ impl Variation2 {
         }
     }
 
-    pub fn query(&self, v: usize, k: usize) -> usize {
+    pub fn kth_parent(&self, v: usize, k: usize) -> usize {
         assert!(k <= self.level[v]);
         if k == 0 {
             v
@@ -74,7 +74,7 @@ impl Variation2 {
             let dist_to_go = self.level[self.jump[j][0]] - (self.level[v] - k) + 1;
             let jump_node = self.jump[j][dist_to_go.ilog2() as usize];
             self.ladders
-                .query(jump_node, self.level[jump_node] - (self.level[v] - k))
+                .kth_parent(jump_node, self.level[jump_node] - (self.level[v] - k))
         }
     }
 }
@@ -165,7 +165,7 @@ mod tests {
                 for i in 0..n {
                     let mut kth_parent_naive = i;
                     for k in 0..=level[i] {
-                        let ans = variation2.query(i, k);
+                        let ans = variation2.kth_parent(i, k);
                         assert_eq!(ans, kth_parent_naive);
                         kth_parent_naive = parent[kth_parent_naive];
                     }
