@@ -1,5 +1,6 @@
 use crate::ladders::Ladders;
-//use rayon::prelude::*;
+use paradis_core::{BoundedParAccess, IntoParAccess};
+use rayon::prelude::*;
 
 pub struct Variation1 {
     level: Vec<usize>,
@@ -26,36 +27,46 @@ impl Variation1 {
         let ladders = Ladders::new(parent, level, time_in, time_out, pre_order, p);
 
         let mut jump: Vec<[usize; 2]> = vec![[0, 0]; 2 * n];
-
-        let mut i = 1;
-        while i < 2 * n {
+        let access = jump.into_par_access();
+        (1..2 * n).into_par_iter().step_by(2).for_each(|i| {
             let u = if level[euler_tour[i - 1]] > level[euler_tour[i]] {
                 euler_tour[i - 1]
             } else {
                 euler_tour[i]
             };
-            jump[i] = [parent[u], parent[parent[u]]];
-            i += 2;
-        }
+            let val = [parent[u], parent[parent[u]]];
+            unsafe {
+                *access.get_unsync(i) = val;
+            }
+        });
 
         for rnz in 1.. {
-            let mut i = 1 << rnz;
-            if i >= 2 * n {
+            let start = 1 << rnz;
+            if start >= 2 * n {
                 break;
             }
-            while i < 2 * n {
-                let l_ch = i - (1 << (rnz - 1));
-                let r_ch = i + (1 << (rnz - 1));
-                for j in 0..=1 {
-                    let mut node = jump[l_ch][j];
-                    if r_ch < 2 * n && level[node] < level[jump[r_ch][j]] {
-                        node = jump[r_ch][j];
+
+            (start..2 * n)
+                .into_par_iter()
+                .step_by(2 * start)
+                .for_each(|i| {
+                    let l_ch = i - (1 << (rnz - 1));
+                    let r_ch = i + (1 << (rnz - 1));
+                    for j in 0..=1 {
+                        let mut node = unsafe { (*access.get_unsync(l_ch))[j] };
+                        if r_ch < 2 * n {
+                            let other_node = unsafe { (*access.get_unsync(r_ch))[j] };
+                            if level[node] < level[other_node] {
+                                node = other_node;
+                            }
+                        }
+                        let jump_node = ladders
+                            .kth_parent(node, std::cmp::min(1 << (rnz - 1 + j), level[node]));
+                        unsafe {
+                            (*access.get_unsync(i))[j] = jump_node;
+                        }
                     }
-                    jump[i][j] =
-                        ladders.kth_parent(node, std::cmp::min(1 << (rnz - 1 + j), level[node]));
-                }
-                i += 2 << rnz;
-            }
+                });
         }
 
         Self {
