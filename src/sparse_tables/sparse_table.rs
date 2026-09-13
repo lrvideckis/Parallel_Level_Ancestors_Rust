@@ -5,11 +5,11 @@ pub struct SparseTable<T, F> {
     op: F,
 }
 
-impl<T: Clone + Send + Sync, F: Fn(&T, &T) -> T + Send + Sync> SparseTable<T, F> {
-    pub fn new(a: &[T], op: F) -> Self {
-        let mut t = vec![a.to_vec(); 1];
+impl<T: Send + Sync, F: Fn(&T, &T) -> T + Send + Sync> SparseTable<T, F> {
+    pub fn new(a: Vec<T>, op: F) -> Self {
+        let mut t = vec![a];
         let mut i = 0;
-        while (2 << i) <= a.len() {
+        while (2 << i) <= t[0].len() {
             let prev = &t[i];
             let shift = 1 << i;
             let layer_len = prev.len() - shift;
@@ -40,7 +40,7 @@ mod tests {
         for n in 0..500 {
             let a: Vec<i32> = (0..n).map(|_| rand::random_range(0..1_000_000)).collect();
 
-            let sparse_table = SparseTable::new(&a, |&x, &y| std::cmp::min(x, y));
+            let sparse_table = SparseTable::new(a.clone(), |&x, &y| std::cmp::min(x, y));
 
             let n = a.len();
             for i in 0..n {

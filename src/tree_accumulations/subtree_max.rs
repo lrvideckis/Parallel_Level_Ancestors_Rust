@@ -73,7 +73,7 @@ where
         })
         .collect();
 
-    let sparse_table = SparseTable::new(&block_values, |x, y| op(x, y));
+    let sparse_table = SparseTable::new(block_values, |x, y| op(x, y));
 
     subtree_max.par_iter_mut().enumerate().for_each(|(i, val)| {
         let l = time_in[i];
