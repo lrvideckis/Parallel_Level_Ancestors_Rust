@@ -39,9 +39,7 @@ impl Variation2 {
                     item.push(u);
                     let mut k = 1;
                     while k < original_idx.isolate_lowest_one() {
-                        if k <= level[u] {
-                            u = ladders.kth_parent(u, k);
-                        }
+                        u = ladders.kth_parent(u, std::cmp::min(k, level[u]));
                         //push even when u goes above root so that we can verify total number of jump
                         //pointers
                         item.push(u);
