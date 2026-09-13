@@ -12,9 +12,12 @@ impl Method3 {
         let n = level.len();
 
         let mut seg_tree = vec![0; 2 * n];
-        seg_tree[n..2 * n].par_iter_mut().enumerate().for_each(|(i, val)| {
-            *val = level[pre_order[i]];
-        });
+        seg_tree[n..2 * n]
+            .par_iter_mut()
+            .enumerate()
+            .for_each(|(i, val)| {
+                *val = level[pre_order[i]];
+            });
 
         let mut level_size = if n > 0 { 1 << (n as u32).ilog2() } else { 0 };
         let mut prev = n;
@@ -49,7 +52,7 @@ impl Method3 {
 
         while l < r {
             let u = r + n;
-            let val = std::cmp::min(u & u.wrapping_neg(), r - l);
+            let val = std::cmp::min(u.isolate_lowest_one(), r - l);
             let b = val.ilog2() as usize;
             if self.seg_tree[(u - 1) >> b] > anc_d {
                 r -= 1 << b;
@@ -98,7 +101,6 @@ mod tests {
 
             dfs(0, &adjacency_list, &mut time_in, &mut pre_order, &mut timer);
             assert_eq!(timer, n);
-
 
             let ancestor = Method3::new(&level, &pre_order, &time_in);
 
