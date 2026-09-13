@@ -34,9 +34,10 @@ impl Ladders {
         let access = leaf_to_size.into_par_access();
         (0..n).into_par_iter().for_each(|i| {
             if parent[i] == i || deepest_leaf[parent[i]] != deepest_leaf[i] {
+                let idx = deepest_leaf[i];
+                let val = 2 * (level[deepest_leaf[i]] - level[i] + 1);
                 unsafe {
-                    let target_ref = access.get_unsync(deepest_leaf[i]);
-                    *target_ref = 2 * (level[deepest_leaf[i]] - level[i] + 1);
+                    *access.get_unsync(idx) = val;
                 }
             }
         });
@@ -54,9 +55,9 @@ impl Ladders {
         (0..n).into_par_iter().for_each(|i| {
             if deepest_leaf[i] == i {
                 let idx = leaf_to_start[i] + leaf_to_size[i];
+                let val = leaf_to_size[i];
                 unsafe {
-                    let target_ref = access.get_unsync(idx);
-                    *target_ref = leaf_to_size[i];
+                    *access.get_unsync(idx) = val;
                 }
             }
         });
@@ -73,8 +74,7 @@ impl Ladders {
             if deepest_leaf[i] == i {
                 let idx = leaf_to_start[i];
                 unsafe {
-                    let target_ref = access.get_unsync(idx);
-                    *target_ref = i;
+                    *access.get_unsync(idx) = i;
                 }
             }
         });
