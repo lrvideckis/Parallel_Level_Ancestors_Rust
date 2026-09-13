@@ -45,19 +45,16 @@ impl Method3 {
     // seg tree walk in this style: https://codeforces.com/blog/entry/118682
     pub fn query(&self, v: usize, k: usize) -> usize {
         assert!(k <= self.level[v]);
-        let anc_d = self.level[v] - k;
         let mut l = 1;
         let mut r = self.time_in[v] + 1;
-        let n = self.pre_order.len();
-
         while l < r {
-            let u = r + n;
-            let val = std::cmp::min(u.isolate_lowest_one(), r - l);
-            let b = val.ilog2() as usize;
-            if self.seg_tree[(u - 1) >> b] > anc_d {
-                r -= 1 << b;
+            let u = r + self.level.len();
+            let b = std::cmp::min(u.isolate_lowest_one(), r - l).ilog2() as usize;
+            let m = r - (1 << b);
+            if self.seg_tree[(u - 1) >> b] > self.level[v] - k {
+                r = m;
             } else {
-                l = r - (1 << b) + 1;
+                l = m + 1;
             }
         }
         self.pre_order[l - 1]
