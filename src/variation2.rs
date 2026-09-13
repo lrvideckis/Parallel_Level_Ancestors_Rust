@@ -63,7 +63,7 @@ impl Variation2 {
         } else {
             let i = self.euler_tour_index[v];
             let j = (i + k - 1) & k.next_power_of_two().wrapping_neg();
-            assert!(i.abs_diff(j) <= k - 1);
+            assert!(i.abs_diff(j) < k);
             let dist_to_go = self.level[self.jump[j][0]] - (self.level[v] - k) + 1;
             let jump_node = self.jump[j][dist_to_go.ilog2() as usize];
             self.ladders
