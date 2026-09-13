@@ -36,8 +36,8 @@ where
     });
     suffix_of_block.par_chunks_mut(b).for_each(|chunk| {
         let len = chunk.len();
-        for j in (0..len - 1).rev() {
-            chunk[j] = op(&chunk[j], &chunk[j + 1]);
+        for j in (1..len).rev() {
+            chunk[j - 1] = op(&chunk[j - 1], &chunk[j]);
         }
     });
 
