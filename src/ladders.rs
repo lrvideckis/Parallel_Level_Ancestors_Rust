@@ -1,4 +1,4 @@
-use crate::n_build_logn_query_methods::jump_pointers::JumpPointersModedLevel;
+use crate::logn_query_methods::jump_pointers::JumpPointersModedLevel;
 use crate::tree_accumulations::subtree_max::calculate_subtree_max;
 use paradis_core::{BoundedParAccess, IntoParAccess};
 use rayon::iter::once;
