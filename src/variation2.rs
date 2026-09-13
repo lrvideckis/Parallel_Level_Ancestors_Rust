@@ -30,13 +30,13 @@ impl Variation2 {
         jump.par_chunks_mut(block_size)
             .enumerate()
             .for_each(|(i, chunk)| {
-                for j in 0..chunk.len() {
+                for (j, item) in chunk.iter_mut().enumerate() {
                     let original_idx = i * block_size + j;
                     if original_idx == 0 {
                         continue;
                     }
                     let mut u = parent[euler_tour[original_idx]];
-                    chunk[j].push(u);
+                    item.push(u);
                     let mut k = 1;
                     while k < original_idx.isolate_lowest_one() {
                         if k <= level[u] {
@@ -44,7 +44,7 @@ impl Variation2 {
                         }
                         //push even when u goes above root so that we can verify total number of jump
                         //pointers
-                        chunk[j].push(u);
+                        item.push(u);
                         k *= 2;
                     }
                 }
