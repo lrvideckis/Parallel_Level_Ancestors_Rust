@@ -1,11 +1,11 @@
 use rayon::prelude::*;
 
-pub struct RMQ<T, F> {
+pub struct SparseTable<T, F> {
     t: Vec<Vec<T>>,
     op: F,
 }
 
-impl<T: Clone + Send + Sync, F: Fn(&T, &T) -> T + Send + Sync> RMQ<T, F> {
+impl<T: Clone + Send + Sync, F: Fn(&T, &T) -> T + Send + Sync> SparseTable<T, F> {
     pub fn new(a: &[T], op: F) -> Self {
         let mut t = vec![a.to_vec(); 1];
         let mut i = 0;
@@ -40,14 +40,14 @@ mod tests {
         for n in 0..500 {
             let a: Vec<i32> = (0..n).map(|_| rand::random_range(0..1_000_000)).collect();
 
-            let rmq = RMQ::new(&a, |&x, &y| std::cmp::min(x, y));
+            let sparse_table = SparseTable::new(&a, |&x, &y| std::cmp::min(x, y));
 
             let n = a.len();
             for i in 0..n {
                 let mut naive = a[i];
                 for j in i..n {
                     naive = std::cmp::min(naive, a[j]);
-                    assert_eq!(naive, rmq.query(i..j + 1));
+                    assert_eq!(naive, sparse_table.query(i..j + 1));
                 }
             }
         }

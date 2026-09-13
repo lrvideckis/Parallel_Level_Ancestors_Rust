@@ -1,4 +1,4 @@
-use crate::range_minimum_query::RMQ;
+use crate::sparse_tables::sparse_table::SparseTable;
 use paradis_core::{BoundedParAccess, IntoParAccess};
 use rayon::prelude::*;
 
@@ -71,7 +71,7 @@ where
         })
         .collect();
 
-    let rmq = RMQ::new(&block_values, |x, y| std::cmp::max(x, y).clone());
+    let sparse_table = SparseTable::new(&block_values, |x, y| std::cmp::max(x, y).clone());
 
     subtree_max.par_iter_mut().enumerate().for_each(|(i, val)| {
         let l = time_in[i];
@@ -84,7 +84,7 @@ where
 
         *val = std::cmp::max(suffix_of_block[l].clone(), prefix_of_block[r - 1].clone());
         if l / b + 1 < r / b {
-            *val = std::cmp::max(val.clone(), rmq.query(l / b + 1..r / b));
+            *val = std::cmp::max(val.clone(), sparse_table.query(l / b + 1..r / b));
         }
     });
 
