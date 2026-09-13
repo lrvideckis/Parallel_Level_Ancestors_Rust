@@ -3,7 +3,7 @@ use rayon::iter::once;
 use rayon::prelude::*;
 use rayon_scan::ScanParallelIterator;
 
-pub struct JumpPointersModedLevel {
+pub struct BinaryLifting {
     parent: Vec<usize>,
     level: Vec<usize>,
     mod_val: usize,
@@ -15,7 +15,7 @@ pub struct JumpPointersModedLevel {
 
 // approach described here:
 // https://codeforces.com/blog/entry/100826#comment-1013981
-impl JumpPointersModedLevel {
+impl BinaryLifting {
     pub fn new(parent: &[usize], level: &[usize], p: usize) -> Self {
         let n = parent.len();
         assert!(n >= 1 && p >= 1);
@@ -158,7 +158,7 @@ mod tests {
                     level[i] = 1 + level[parent[i]];
                 }
 
-                let structure = JumpPointersModedLevel::new(&parent, &level, p);
+                let structure = BinaryLifting::new(&parent, &level, p);
 
                 for i in 0..n {
                     let mut kth_parent_naive = i;

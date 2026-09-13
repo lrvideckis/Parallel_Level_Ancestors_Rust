@@ -1,4 +1,4 @@
-use crate::logn_query_methods::jump_pointers::JumpPointersModedLevel;
+use crate::logn_query_methods::binary_lifting::BinaryLifting;
 use crate::tree_accumulations::subtree_max::calculate_subtree_max;
 use paradis_core::{BoundedParAccess, IntoParAccess};
 use rayon::iter::once;
@@ -79,7 +79,7 @@ impl Ladders {
             }
         });
 
-        let jump_pointers = JumpPointersModedLevel::new(parent, level, p);
+        let jump_pointers = BinaryLifting::new(parent, level, p);
 
         let block_size = (2 * n).div_ceil(p);
 

@@ -1,2 +1,2 @@
-pub mod jump_pointers;
+pub mod binary_lifting;
 pub mod method3;
