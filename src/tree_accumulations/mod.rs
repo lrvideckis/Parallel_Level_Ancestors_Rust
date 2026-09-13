@@ -1,1 +1,2 @@
+pub mod ancestors_associative;
 pub mod subtree_commutative_associative_idempotent;
