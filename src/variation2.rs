@@ -12,6 +12,7 @@ pub struct Variation2 {
 }
 
 impl Variation2 {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         parent: &[usize],
         level: &[usize],
@@ -32,7 +33,8 @@ impl Variation2 {
             let mut u = parent[euler_tour[i]];
             jump[i].push(u);
             let mut j = 1;
-            while j < i & i.wrapping_neg() {
+            while j < i.isolate_lowest_one() {
+                //while j < i & i.wrapping_neg() {
                 if j <= level[u] {
                     u = ladders.query(u, j);
                 }

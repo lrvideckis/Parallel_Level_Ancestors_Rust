@@ -113,7 +113,7 @@ impl Ladders {
         let leaf = self.deepest_leaf[v];
         let difference = self.level[leaf] - self.level[v];
         assert!(difference + k < self.leaf_to_size[leaf]);
-        return self.ladder[self.leaf_to_start[leaf] + difference + k];
+        self.ladder[self.leaf_to_start[leaf] + difference + k]
     }
 }
 
