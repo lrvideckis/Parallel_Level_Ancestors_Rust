@@ -1,5 +1,5 @@
 use crate::logn_query_methods::binary_lifting::BinaryLifting;
-use crate::tree_accumulations::subtree_max::calculate_subtree_max;
+use crate::tree_accumulations::subtree_commutative_associative_idempotent::subtree_commutative_associative_idempotent;
 use paradis_core::{BoundedParAccess, IntoParAccess};
 use rayon::iter::once;
 use rayon::prelude::*;
@@ -27,7 +27,7 @@ impl Ladders {
 
         let values: Vec<(usize, usize)> = (0..n).into_par_iter().map(|i| (level[i], i)).collect();
 
-        let deepest_leaf = calculate_subtree_max(
+        let deepest_leaf = subtree_commutative_associative_idempotent(
             &values,
             |&x, &y| std::cmp::max(x, y),
             parent,

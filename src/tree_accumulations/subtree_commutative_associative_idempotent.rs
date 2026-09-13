@@ -2,7 +2,7 @@ use crate::sparse_tables::sparse_table::SparseTable;
 use paradis_core::{BoundedParAccess, IntoParAccess};
 use rayon::prelude::*;
 
-pub fn calculate_subtree_max<T, F>(
+pub fn subtree_commutative_associative_idempotent<T, F>(
     values: &[T],
     op: F,
     parent: &[usize],
@@ -142,7 +142,7 @@ mod tests {
                     );
                 }
 
-                let subtree_max_block = calculate_subtree_max(
+                let subtree_max_block = subtree_commutative_associative_idempotent(
                     &values,
                     |&x, &y| std::cmp::max(x, y),
                     &parent,

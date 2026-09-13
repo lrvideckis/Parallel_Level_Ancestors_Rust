@@ -1,1 +1,1 @@
-pub mod subtree_max;
+pub mod subtree_commutative_associative_idempotent;
