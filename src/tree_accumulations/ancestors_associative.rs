@@ -1,3 +1,6 @@
+use paradis_core::{BoundedParAccess, IntoParAccess};
+use rayon::prelude::*;
+
 #[allow(clippy::too_many_arguments)]
 pub fn ancestors_associative<T, F>(
     values: &[T],
@@ -6,7 +9,7 @@ pub fn ancestors_associative<T, F>(
     parent: &[usize],
     time_in: &[usize],
     time_out: &[usize],
-    pre_order: &[usize],
+    euler_tour: &[usize],
     p: usize,
 ) -> Vec<T>
 where
@@ -16,47 +19,52 @@ where
     let n = values.len();
     assert!(n >= 1 && p >= 1);
 
-    let euler_tour = pre_order;
     let b = (2 * n - 1).div_ceil(p);
     let mut ancestor_agg = values.to_vec();
-
-    for i in 0..p {
+    let access = ancestor_agg.into_par_access();
+    (0..p).into_par_iter().for_each(|i| {
         let start_idx = i * b;
         if start_idx >= 2 * n - 1 {
-            continue;
+            return;
         }
         let end_idx = std::cmp::min((i + 1) * b, 2 * n - 1);
-
         for j in start_idx..end_idx {
             let node = euler_tour[j];
             let par = parent[node];
             if time_in[node] == j && par != node {
                 if time_in[par] / b == time_out[par] / b {
-                    ancestor_agg[node] = op(&ancestor_agg[node], &ancestor_agg[par]);
+                    unsafe {
+                        let node_ptr = access.get_unsync(node);
+                        let par_ptr = access.get_unsync(par);
+                        *node_ptr = op(&*node_ptr, &*par_ptr);
+                    }
                 }
             }
         }
-    }
+    });
 
     {
         let mut prefix_agg = vec![identity.clone(); 2 * n - 1];
         let mut suffix_agg = vec![identity.clone(); 2 * n - 1];
-
-        for i in 0..n {
+        let pref_access = prefix_agg.into_par_access();
+        let suf_access = suffix_agg.into_par_access();
+        (0..n).into_par_iter().for_each(|i| {
             let l = time_in[i];
             let r = time_out[i];
             assert!(l <= r);
             if l / b == r / b {
-                continue;
+                return;
             }
-            suffix_agg[l] = values[i].clone();
-            prefix_agg[r] = values[i].clone();
-        }
+            unsafe {
+                *suf_access.get_unsync(l) = values[i].clone();
+                *pref_access.get_unsync(r) = values[i].clone();
+            }
+        });
 
-        for i in 0..p {
+        (0..p).into_par_iter().for_each(|i| {
             let start_idx = i * b;
             if start_idx >= 2 * n - 1 {
-                continue;
+                return;
             }
             let end_idx = std::cmp::min((i + 1) * b, 2 * n - 1);
 
@@ -65,23 +73,28 @@ where
                 for j in start_idx..end_idx {
                     let sub_node = euler_tour[j];
                     if time_in[sub_node] == j {
-                        ancestor_agg[sub_node] = op(&ancestor_agg[sub_node], &running_agg);
+                        unsafe {
+                            let node_ptr = access.get_unsync(sub_node);
+                            *node_ptr = op(&*node_ptr, &running_agg);
+                        }
                     }
                     running_agg = op(&suffix_agg[j], &running_agg);
                 }
             }
-
             {
                 let mut running_agg = identity.clone();
                 for j in (start_idx..end_idx).rev() {
                     running_agg = op(&prefix_agg[j], &running_agg);
                     let sub_node = euler_tour[j];
                     if time_in[sub_node] == j {
-                        ancestor_agg[sub_node] = op(&ancestor_agg[sub_node], &running_agg);
+                        unsafe {
+                            let node_ptr = access.get_unsync(sub_node);
+                            *node_ptr = op(&*node_ptr, &running_agg);
+                        }
                     }
                 }
             }
-        }
+        });
     }
 
     {
@@ -186,27 +199,34 @@ where
             }
         }
 
-        let mut rmq_agg = vec![identity.clone(); p];
-        for i in 0..disjoint_rmq.len() {
-            for j in 0..p {
-                rmq_agg[j] = op(&rmq_agg[j], &disjoint_rmq[i][j]);
-            }
-        }
+        let rmq_agg: Vec<T> = (0..p)
+            .into_par_iter()
+            .map(|j| {
+                let mut acc = identity.clone();
+                for i in 0..disjoint_rmq.len() {
+                    acc = op(&acc, &disjoint_rmq[i][j]);
+                }
+                acc
+            })
+            .collect();
 
-        for i in 0..p {
+        let access = ancestor_agg.into_par_access();
+        (0..p).into_par_iter().for_each(|i| {
             let start_idx = i * b;
             if start_idx >= 2 * n - 1 {
-                continue;
+                return;
             }
             let end_idx = std::cmp::min((i + 1) * b, 2 * n - 1);
-
             for j in start_idx..end_idx {
                 let node = euler_tour[j];
                 if time_in[node] == j {
-                    ancestor_agg[node] = op(&ancestor_agg[node], &rmq_agg[i]);
+                    unsafe {
+                        let node_ptr = access.get_unsync(node);
+                        *node_ptr = op(&*node_ptr, &rmq_agg[i]);
+                    }
                 }
             }
-        }
+        });
     }
     ancestor_agg
 }
@@ -231,7 +251,7 @@ mod tests {
             res
         };
 
-        for n in 1..=100 {
+        for n in 1..=80 {
             for p in 1..=2 * n + 5 {
                 println!("n,P: {} {}", n, p);
 
