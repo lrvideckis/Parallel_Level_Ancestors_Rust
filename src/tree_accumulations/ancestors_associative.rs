@@ -28,16 +28,13 @@ where
             return;
         }
         let end_idx = std::cmp::min((i + 1) * b, 2 * n - 1);
-        for j in start_idx..end_idx {
-            let node = euler_tour[j];
+        for (j, &node) in euler_tour.iter().enumerate().take(end_idx).skip(start_idx) {
             let par = parent[node];
-            if time_in[node] == j && par != node {
-                if time_in[par] / b == time_out[par] / b {
-                    unsafe {
-                        let node_ptr = access.get_unsync(node);
-                        let par_ptr = access.get_unsync(par);
-                        *node_ptr = op(&*node_ptr, &*par_ptr);
-                    }
+            if time_in[node] == j && par != node && time_in[par] / b == time_out[par] / b {
+                unsafe {
+                    let node_ptr = access.get_unsync(node);
+                    let par_ptr = access.get_unsync(par);
+                    *node_ptr = op(&*node_ptr, &*par_ptr);
                 }
             }
         }
@@ -134,9 +131,7 @@ where
                 return;
             }
             let end_idx = std::cmp::min((i + 1) * b, 2 * n - 1);
-
-            for j in start_idx..end_idx {
-                let node = euler_tour[j];
+            for (j, &node) in euler_tour.iter().enumerate().take(end_idx).skip(start_idx) {
                 let l = time_in[node];
                 let r = time_out[node];
                 if r == j {
@@ -223,8 +218,7 @@ where
                 return;
             }
             let end_idx = std::cmp::min((i + 1) * b, 2 * n - 1);
-            for j in start_idx..end_idx {
-                let node = euler_tour[j];
+            for (j, &node) in euler_tour.iter().enumerate().take(end_idx).skip(start_idx) {
                 if time_in[node] == j {
                     unsafe {
                         let node_ptr = access.get_unsync(node);
