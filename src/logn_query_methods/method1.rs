@@ -1,4 +1,7 @@
+use paradis_core::{BoundedParAccess, IntoParAccess};
+use rayon::iter::once;
 use rayon::prelude::*;
+use rayon_scan::ScanParallelIterator;
 
 pub struct Method1 {
     parent: Vec<usize>,
@@ -24,31 +27,39 @@ impl Method1 {
             .map(|i| time_out[i] & (1usize << (time_in[i] ^ time_out[i]).ilog2()).wrapping_neg())
             .collect();
         let mut head = vec![0; n + 1];
-        for i in 0..n {
+        let access = head.into_par_access();
+        (0..n).into_par_iter().for_each(|i| {
             if i == parent[i] || inlabel[parent[i]] != inlabel[i] {
-                head[inlabel[i]] = i;
+                unsafe {
+                    *access.get_unsync(inlabel[i]) = i;
+                }
             }
-        }
+        });
         let mut head_to_start = vec![0; n + 1];
-        for v in 0..n {
+        let access = head_to_start.into_par_access();
+        (0..n).into_par_iter().for_each(|v| {
             if pre_order[inlabel[v]] == v {
                 let head_v = head[inlabel[v]];
-                head_to_start[head_v] = level[v] - level[head_v] + 1;
+                let val = level[v] - level[head_v] + 1;
+                unsafe {
+                    *access.get_unsync(head_v) = val;
+                }
             }
-        }
-        let mut sum = 0;
-        for i in 0..=n {
-            let val = head_to_start[i];
-            head_to_start[i] = sum;
-            sum += val;
-        }
-        assert_eq!(sum, n);
+        });
+        let head_to_start: Vec<usize> = once(0)
+            .chain(head_to_start.par_iter().cloned())
+            .scan(|a, b| *a + *b, 0)
+            .collect();
+        assert_eq!(head_to_start[n], n);
         let mut path = vec![0; n];
-        for v in 0..n {
+        let access = path.into_par_access();
+        (0..n).into_par_iter().for_each(|v| {
             let head_v = head[inlabel[v]];
             let idx = head_to_start[head_v] + level[v] - level[head_v];
-            path[idx] = v;
-        }
+            unsafe {
+                *access.get_unsync(idx) = v;
+            }
+        });
         Self {
             parent: parent.to_vec(),
             level: level.to_vec(),
