@@ -98,11 +98,12 @@ where
 
     {
         let mut disjoint_rmq = vec![vec![identity.clone(); p]; (p.ilog2() as usize) + 1];
+        let access = disjoint_rmq.into_par_access();
 
-        for i in 0..p {
+        (0..p).into_par_iter().for_each(|i| {
             let start_idx = i * b;
             if start_idx >= 2 * n - 1 {
-                continue;
+                return;
             }
             let end_idx = std::cmp::min((i + 1) * b, 2 * n - 1);
 
@@ -118,16 +119,19 @@ where
                         } else {
                             0
                         };
-                        disjoint_rmq[lg][block_l] = op(&disjoint_rmq[lg][block_l], &values[node]);
+                        unsafe {
+                            (*access.get_unsync(lg))[block_l] =
+                                op(&(*access.get_unsync(lg))[block_l], &values[node]);
+                        }
                     }
                 }
             }
-        }
+        });
 
-        for i in 0..p {
+        (0..p).into_par_iter().for_each(|i| {
             let start_idx = i * b;
             if start_idx >= 2 * n - 1 {
-                continue;
+                return;
             }
             let end_idx = std::cmp::min((i + 1) * b, 2 * n - 1);
 
@@ -140,12 +144,14 @@ where
                     let block_r = i;
                     if block_l + 1 < block_r {
                         let lg = (block_l ^ (block_r - 1)).ilog2() as usize;
-                        disjoint_rmq[lg][block_r - 1] =
-                            op(&disjoint_rmq[lg][block_r - 1], &values[node]);
+                        unsafe {
+                            (*access.get_unsync(lg))[block_r - 1] =
+                                op(&(*access.get_unsync(lg))[block_r - 1], &values[node]);
+                        }
                     }
                 }
             }
-        }
+        });
 
         for i in 0..disjoint_rmq.len() {
             let mut stride = 1;
