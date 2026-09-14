@@ -67,7 +67,6 @@ where
                 return;
             }
             let end_idx = std::cmp::min((i + 1) * b, 2 * n - 1);
-
             {
                 let mut running_agg = identity.clone();
                 for j in start_idx..end_idx {
@@ -107,10 +106,10 @@ where
             }
             let end_idx = std::cmp::min((i + 1) * b, 2 * n - 1);
 
-            for l_idx in (start_idx..end_idx).rev() {
-                let node = euler_tour[l_idx];
+            for j in (start_idx..end_idx).rev() {
+                let node = euler_tour[j];
                 let r = time_out[node];
-                if time_in[node] == l_idx {
+                if time_in[node] == j {
                     let block_l = i + 1;
                     let block_r = r / b;
                     if block_l < block_r {
