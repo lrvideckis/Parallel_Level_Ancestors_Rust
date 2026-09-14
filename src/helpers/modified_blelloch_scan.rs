@@ -1,77 +1,98 @@
-//use rayon::prelude::*;
+use paradis_core::{BoundedParAccess, IntoParAccess};
+use rayon::prelude::*;
 
 pub fn prefix_sum<T, F, G>(values: &mut [T], op: F, same_subarray: G)
 where
-    T: Clone + Send + Sync,
+    T: Send + Sync,
     F: Fn(&T, &T) -> T + Send + Sync,
     G: Fn(usize, usize) -> bool + Send + Sync,
 {
     let n = values.len();
-    if n == 0 {
-        return;
-    }
-
+    assert!(n >= 1);
+    let access = values.into_par_access();
     let mut stride = 1;
     while stride < n {
-        let mut j = stride - 1;
-        while j + stride < n {
-            let k = j + stride;
-            if same_subarray(j, k) {
-                values[k] = op(&values[k], &values[j]);
-            }
-            j += 2 * stride;
-        }
+        let start = stride - 1;
+        (start..n)
+            .into_par_iter()
+            .step_by(2 * stride)
+            .filter(|&j| j + stride < n)
+            .for_each(|j| {
+                let k = j + stride;
+                if same_subarray(j, k) {
+                    unsafe {
+                        let j_ptr = access.get_unsync(j);
+                        let k_ptr = access.get_unsync(k);
+                        *k_ptr = op(&*k_ptr, &*j_ptr);
+                    }
+                }
+            });
         stride *= 2;
     }
-
     stride /= 2;
     while stride >= 1 {
-        let mut j = 2 * stride - 1;
-        while j + stride < n {
-            let k = j + stride;
-            if same_subarray(j, k) {
-                values[k] = op(&values[k], &values[j]);
-            }
-            j += 2 * stride;
-        }
+        let start = 2 * stride - 1;
+        (start..n)
+            .into_par_iter()
+            .step_by(2 * stride)
+            .filter(|&j| j + stride < n)
+            .for_each(|j| {
+                let k = j + stride;
+                if same_subarray(j, k) {
+                    unsafe {
+                        let j_ptr = access.get_unsync(j);
+                        let k_ptr = access.get_unsync(k);
+                        *k_ptr = op(&*k_ptr, &*j_ptr);
+                    }
+                }
+            });
         stride /= 2;
     }
 }
 
 pub fn suffix_sum<T, F, G>(values: &mut [T], op: F, same_subarray: G)
 where
-    T: Clone + Send + Sync,
+    T: Send + Sync,
     F: Fn(&T, &T) -> T + Send + Sync,
     G: Fn(usize, usize) -> bool + Send + Sync,
 {
     let n = values.len();
-    if n == 0 {
-        return;
-    }
-
+    assert!(n >= 1);
+    let access = values.into_par_access();
     let mut stride2 = 1;
     while stride2 < n {
-        let mut j = 0;
-        while j + stride2 < n {
-            let k = j + stride2;
-            if same_subarray(j, k) {
-                values[j] = op(&values[j], &values[k]);
-            }
-            j += 2 * stride2;
-        }
+        (0..n)
+            .into_par_iter()
+            .step_by(2 * stride2)
+            .filter(|&j| j + stride2 < n)
+            .for_each(|j| {
+                let k = j + stride2;
+                if same_subarray(j, k) {
+                    unsafe {
+                        let j_ptr = access.get_unsync(j);
+                        let k_ptr = access.get_unsync(k);
+                        *j_ptr = op(&*j_ptr, &*k_ptr);
+                    }
+                }
+            });
         stride2 *= 2;
     }
-
     stride2 /= 2;
     while stride2 >= 1 {
-        let mut j = stride2;
-        while j + stride2 < n {
-            let k = j + stride2;
-            if same_subarray(j, k) {
-                values[j] = op(&values[j], &values[k]);
-            }
-            j += 2 * stride2;
-        }
+        (stride2..n)
+            .into_par_iter()
+            .step_by(2 * stride2)
+            .filter(|&j| j + stride2 < n)
+            .for_each(|j| {
+                let k = j + stride2;
+                if same_subarray(j, k) {
+                    unsafe {
+                        let j_ptr = access.get_unsync(j);
+                        let k_ptr = access.get_unsync(k);
+                        *j_ptr = op(&*j_ptr, &*k_ptr);
+                    }
+                }
+            });
         stride2 /= 2;
     }
 }
