@@ -161,8 +161,8 @@ where
             .into_par_iter()
             .map(|j| {
                 let mut acc = identity.clone();
-                for i in 0..disjoint_rmq.len() {
-                    acc = op(&acc, &disjoint_rmq[i][j]);
+                for row in &disjoint_rmq {
+                    acc = op(&acc, &row[j]);
                 }
                 acc
             })
