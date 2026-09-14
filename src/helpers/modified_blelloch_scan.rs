@@ -13,10 +13,9 @@ where
     let mut stride = 1;
     while stride < n {
         let start = stride - 1;
-        (start..n)
+        (start..n - stride)
             .into_par_iter()
             .step_by(2 * stride)
-            .filter(|&j| j + stride < n)
             .for_each(|j| {
                 let k = j + stride;
                 if same_subarray(j, k) {
@@ -32,10 +31,9 @@ where
     stride /= 2;
     while stride >= 1 {
         let start = 2 * stride - 1;
-        (start..n)
+        (start..n - stride)
             .into_par_iter()
             .step_by(2 * stride)
-            .filter(|&j| j + stride < n)
             .for_each(|j| {
                 let k = j + stride;
                 if same_subarray(j, k) {
@@ -59,14 +57,13 @@ where
     let n = values.len();
     assert!(n >= 1);
     let access = values.into_par_access();
-    let mut stride2 = 1;
-    while stride2 < n {
-        (0..n)
+    let mut stride = 1;
+    while stride < n {
+        (0..n - stride)
             .into_par_iter()
-            .step_by(2 * stride2)
-            .filter(|&j| j + stride2 < n)
+            .step_by(2 * stride)
             .for_each(|j| {
-                let k = j + stride2;
+                let k = j + stride;
                 if same_subarray(j, k) {
                     unsafe {
                         let j_ptr = access.get_unsync(j);
@@ -75,16 +72,15 @@ where
                     }
                 }
             });
-        stride2 *= 2;
+        stride *= 2;
     }
-    stride2 /= 2;
-    while stride2 >= 1 {
-        (stride2..n)
+    stride /= 2;
+    while stride >= 1 {
+        (stride..n - stride)
             .into_par_iter()
-            .step_by(2 * stride2)
-            .filter(|&j| j + stride2 < n)
+            .step_by(2 * stride)
             .for_each(|j| {
-                let k = j + stride2;
+                let k = j + stride;
                 if same_subarray(j, k) {
                     unsafe {
                         let j_ptr = access.get_unsync(j);
@@ -93,7 +89,7 @@ where
                     }
                 }
             });
-        stride2 /= 2;
+        stride /= 2;
     }
 }
 
