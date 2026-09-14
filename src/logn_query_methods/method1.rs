@@ -8,6 +8,7 @@ pub struct Method1 {
     level: Vec<usize>,
     inlabel: Vec<usize>,
     head: Vec<usize>,
+    ascendant: Vec<usize>,
     path: Vec<usize>,
     head_to_start: Vec<usize>,
 }
@@ -19,6 +20,8 @@ impl Method1 {
         time_in: &[usize],
         time_out: &[usize],
         pre_order: &[usize],
+        et_time_in: &[usize],
+        et_time_out: &[usize],
     ) -> Self {
         let n = level.len();
         assert!(n >= 1);
@@ -60,6 +63,22 @@ impl Method1 {
                 *access.get_unsync(idx) = v;
             }
         });
+        let mut diff = vec![0isize; 2 * n];
+        let access_diff = diff.into_par_access();
+        (0..n).into_par_iter().for_each(|i| {
+            if i == parent[i] || inlabel[parent[i]] != inlabel[i] {
+                let lsb_val = (inlabel[i] & inlabel[i].wrapping_neg()) as isize;
+                unsafe {
+                    *access_diff.get_unsync(et_time_in[i]) += lsb_val;
+                    *access_diff.get_unsync(et_time_out[i]) -= lsb_val;
+                }
+            }
+        });
+        let diff: Vec<isize> = diff.into_par_iter().scan(|a, b| *a + *b, 0).collect();
+        let ascendant: Vec<usize> = (0..n)
+            .into_par_iter()
+            .map(|v| diff[et_time_in[v]] as usize)
+            .collect();
         Self {
             parent: parent.to_vec(),
             level: level.to_vec(),
@@ -67,6 +86,7 @@ impl Method1 {
             head,
             path,
             head_to_start,
+            ascendant,
         }
     }
 
@@ -81,6 +101,32 @@ impl Method1 {
             }
             u = self.parent[head_u];
         }
+    }
+
+    // O(log(log(n))) but with bad constant factor, mostly just to show it's possible
+    pub fn kth_parent_binary_search_paths(&self, v: usize, k: usize) -> usize {
+        assert!(k <= self.level[v]);
+        let anc_d = self.level[v] - k;
+        let n = self.level.len();
+        let mut start: i32 = -1;
+        let mut end: i32 = n.ilog2() as i32;
+        while start + 1 < end {
+            let mid = (start + end) / 2;
+            let b = (self.ascendant[v] & (1usize << mid).wrapping_neg()).isolate_lowest_one();
+            let curr_inlabel = (self.inlabel[v] & b.wrapping_neg()) | b;
+            let curr_head = self.head[curr_inlabel];
+            let dist_to_go = anc_d as isize - self.level[curr_head] as isize;
+            if dist_to_go >= 0 {
+                end = mid;
+            } else {
+                start = mid;
+            }
+        }
+        let b = (self.ascendant[v] & (1usize << end).wrapping_neg()).isolate_lowest_one();
+        let curr_inlabel = (self.inlabel[v] & b.wrapping_neg()) | b;
+        let curr_head = self.head[curr_inlabel];
+        let dist_to_go = anc_d - self.level[curr_head];
+        self.path[self.head_to_start[curr_head] + dist_to_go]
     }
 }
 
@@ -102,7 +148,10 @@ mod tests {
             let mut pre_order = vec![0; n + 1];
             let mut time_in = vec![0; n];
             let mut time_out = vec![0; n];
+            let mut et_time_in = vec![0; n];
+            let mut et_time_out = vec![0; n];
             let mut timer = 0;
+            let mut et_timer = 0;
             fn dfs(
                 v: usize,
                 adj: &[Vec<usize>],
@@ -110,15 +159,36 @@ mod tests {
                 time_out: &mut [usize],
                 pre_order: &mut [usize],
                 timer: &mut usize,
+                et_time_in: &mut [usize],
+                et_time_out: &mut [usize],
+                et_timer: &mut usize,
             ) {
                 time_in[v] = *timer;
                 *timer += 1;
                 pre_order[*timer] = v;
+
+                et_time_in[v] = *et_timer;
+                *et_timer += 1;
+
                 for &child in &adj[v] {
-                    dfs(child, adj, time_in, time_out, pre_order, timer);
+                    dfs(
+                        child,
+                        adj,
+                        time_in,
+                        time_out,
+                        pre_order,
+                        timer,
+                        et_time_in,
+                        et_time_out,
+                        et_timer,
+                    );
                 }
                 time_out[v] = *timer;
+
+                et_time_out[v] = *et_timer;
+                *et_timer += 1;
             }
+
             dfs(
                 0,
                 &adjacency_list,
@@ -126,13 +196,31 @@ mod tests {
                 &mut time_out,
                 &mut pre_order,
                 &mut timer,
+                &mut et_time_in,
+                &mut et_time_out,
+                &mut et_timer,
             );
             assert_eq!(timer, n);
-            let ancestor = Method1::new(&parent, &level, &time_in, &time_out, &pre_order);
+            assert_eq!(et_timer, 2 * n);
+
+            let ancestor = Method1::new(
+                &parent,
+                &level,
+                &time_in,
+                &time_out,
+                &pre_order,
+                &et_time_in,
+                &et_time_out,
+            );
+
             for i in 0..n {
                 let mut kth_parent_naive = i;
                 for k in 0..=level[i] {
                     assert_eq!(kth_parent_naive, ancestor.kth_parent(i, k));
+                    assert_eq!(
+                        kth_parent_naive,
+                        ancestor.kth_parent_binary_search_paths(i, k)
+                    );
                     kth_parent_naive = parent[kth_parent_naive];
                 }
             }
