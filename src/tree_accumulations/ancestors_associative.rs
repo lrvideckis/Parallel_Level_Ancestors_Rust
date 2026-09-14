@@ -256,12 +256,12 @@ mod tests {
             for p in 1..=2 * n + 5 {
                 println!("n,P: {} {}", n, p);
 
-                let mod_val = rand::random_range(10..1_000_000_000) as u64;
+                let mod_val = rand::random_range(10..1_000_000_000);
 
                 let mut adjacency_list = vec![vec![]; n];
                 let mut parent = vec![0; n];
                 for i in 1..n {
-                    parent[i] = rand::random_range(0..i) as usize;
+                    parent[i] = rand::random_range(0..i);
                     adjacency_list[parent[i]].push(i);
                 }
 
@@ -269,12 +269,12 @@ mod tests {
                     .map(|_| {
                         [
                             [
-                                rand::random_range(0..mod_val) as u64,
-                                rand::random_range(0..mod_val) as u64,
+                                rand::random_range(0..mod_val),
+                                rand::random_range(0..mod_val),
                             ],
                             [
-                                rand::random_range(0..mod_val) as u64,
-                                rand::random_range(0..mod_val) as u64,
+                                rand::random_range(0..mod_val),
+                                rand::random_range(0..mod_val),
                             ],
                         ]
                     })
