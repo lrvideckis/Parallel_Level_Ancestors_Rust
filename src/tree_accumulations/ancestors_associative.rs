@@ -114,10 +114,11 @@ where
                     let block_l = i + 1;
                     let block_r = r / b;
                     if block_l < block_r {
-                        let mut lg = 0;
-                        if block_l + 1 < block_r {
-                            lg = (block_l ^ (block_r - 1)).ilog2() as usize;
-                        }
+                        let lg = if block_l + 1 < block_r {
+                            (block_l ^ (block_r - 1)).ilog2() as usize
+                        } else {
+                            0
+                        };
                         disjoint_rmq[lg][block_l] = op(&disjoint_rmq[lg][block_l], &values[node]);
                     }
                 }
@@ -291,6 +292,7 @@ mod tests {
                         value: &Vec<Matrix>,
                         ancestor_agg_naive: &mut Vec<Matrix>,
                         mod_val: u64,
+                        mult_fn: fn(&Matrix, &Matrix, u64) -> Matrix,
                     ) {
                         time_in[node] = *timer;
                         euler_tour[*timer] = node;
@@ -298,17 +300,8 @@ mod tests {
                         for &child in &adjacency_list[node] {
                             depth[child] = 1 + depth[node];
 
-                            let a = value[child];
-                            let b = ancestor_agg_naive[node];
-                            let mut res: Matrix = [[0, 0], [0, 0]];
-                            for i in 0..2 {
-                                for j in 0..2 {
-                                    for k in 0..2 {
-                                        res[i][j] = (res[i][j] + a[i][k] * b[k][j]) % mod_val;
-                                    }
-                                }
-                            }
-                            ancestor_agg_naive[child] = res;
+                            ancestor_agg_naive[child] =
+                                mult_fn(&value[child], &ancestor_agg_naive[node], mod_val);
 
                             dfs(
                                 child,
@@ -321,6 +314,7 @@ mod tests {
                                 value,
                                 ancestor_agg_naive,
                                 mod_val,
+                                mult_fn,
                             );
                             euler_tour[*timer] = node;
                             *timer += 1;
@@ -340,6 +334,7 @@ mod tests {
                         &value,
                         &mut ancestor_agg_naive,
                         mod_val,
+                        mult,
                     );
                     assert_eq!(timer, 2 * n - 1);
                 }
