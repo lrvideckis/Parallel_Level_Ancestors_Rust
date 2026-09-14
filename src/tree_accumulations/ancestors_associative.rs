@@ -1,3 +1,4 @@
+use crate::helpers::modified_blelloch_scan::*;
 use paradis_core::{BoundedParAccess, IntoParAccess};
 use rayon::prelude::*;
 
@@ -148,57 +149,13 @@ where
             }
         });
 
-        for i in 0..disjoint_rmq.len() {
-            let mut stride = 1;
-            while stride < p {
-                let mut j = stride - 1;
-                while j + stride < p {
-                    let k = j + stride;
-                    if (j >> i) == (k >> i) && ((j >> i) % 2 == 0) {
-                        disjoint_rmq[i][k] = op(&disjoint_rmq[i][k], &disjoint_rmq[i][j]);
-                    }
-                    j += 2 * stride;
-                }
-                stride *= 2;
-            }
-            stride /= 2;
-            while stride >= 1 {
-                let mut j = 2 * stride - 1;
-                while j + stride < p {
-                    let k = j + stride;
-                    if (j >> i) == (k >> i) && ((j >> i) % 2 == 0) {
-                        disjoint_rmq[i][k] = op(&disjoint_rmq[i][k], &disjoint_rmq[i][j]);
-                    }
-                    j += 2 * stride;
-                }
-                stride /= 2;
-            }
-
-            let mut stride2 = 1;
-            while stride2 < p {
-                let mut j = 0;
-                while j + stride2 < p {
-                    let k = j + stride2;
-                    if (j >> i) == (k >> i) && ((j >> i) % 2 == 1) {
-                        disjoint_rmq[i][j] = op(&disjoint_rmq[i][j], &disjoint_rmq[i][k]);
-                    }
-                    j += 2 * stride2;
-                }
-                stride2 *= 2;
-            }
-            stride2 /= 2;
-            while stride2 >= 1 {
-                let mut j = stride2;
-                while j + stride2 < p {
-                    let k = j + stride2;
-                    if (j >> i) == (k >> i) && ((j >> i) % 2 == 1) {
-                        disjoint_rmq[i][j] = op(&disjoint_rmq[i][j], &disjoint_rmq[i][k]);
-                    }
-                    j += 2 * stride2;
-                }
-                stride2 /= 2;
-            }
-        }
+        disjoint_rmq
+            .par_iter_mut()
+            .enumerate()
+            .for_each(|(i, row)| {
+                prefix_sum(row, &op, |j, k| (j >> i) == (k >> i) && ((j >> i) % 2 == 0));
+                suffix_sum(row, &op, |j, k| (j >> i) == (k >> i) && ((j >> i) % 2 == 1));
+            });
 
         let rmq_agg: Vec<T> = (0..p)
             .into_par_iter()
