@@ -128,6 +128,24 @@ impl Method1 {
         let dist_to_go = anc_d - self.level[curr_head];
         self.path[self.head_to_start[curr_head] + dist_to_go]
     }
+
+    pub fn lowest_common_ancestor(&self, mut u: usize, mut v: usize) -> usize {
+        let j = self.inlabel[u] ^ self.inlabel[v];
+        if j != 0 {
+            let j = self.ascendant[u] & self.ascendant[v] & (1usize << j.ilog2()).wrapping_neg();
+            let k = self.ascendant[u] ^ j;
+            if k != 0 {
+                let k = 1usize << k.ilog2();
+                u = self.parent[self.head[(self.inlabel[u] & k.wrapping_neg()) | k]];
+            }
+            let k = self.ascendant[v] ^ j;
+            if k != 0 {
+                let k = 1usize << k.ilog2();
+                v = self.parent[self.head[(self.inlabel[v] & k.wrapping_neg()) | k]];
+            }
+        }
+        if self.level[u] < self.level[v] { u } else { v }
+    }
 }
 
 #[cfg(test)]
@@ -136,7 +154,7 @@ mod tests {
 
     #[test]
     fn stress_test() {
-        for n in 1..=1000 {
+        for n in 1..=300 {
             let mut adjacency_list = vec![vec![]; n];
             let mut parent = vec![0; n];
             let mut level = vec![0; n];
@@ -222,6 +240,23 @@ mod tests {
                         ancestor.kth_parent_binary_search_paths(i, k)
                     );
                     kth_parent_naive = parent[kth_parent_naive];
+                }
+            }
+
+            let naive_lca = |mut u: usize, mut v: usize| -> usize {
+                while u != v {
+                    if level[u] > level[v] {
+                        u = parent[u];
+                    } else {
+                        v = parent[v];
+                    }
+                }
+                u
+            };
+
+            for u in 0..n {
+                for v in 0..n {
+                    assert_eq!(naive_lca(u, v), ancestor.lowest_common_ancestor(u, v));
                 }
             }
         }
