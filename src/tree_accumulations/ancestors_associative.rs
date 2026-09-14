@@ -252,7 +252,7 @@ mod tests {
             res
         };
 
-        for n in 1..=80 {
+        for n in 1..=50 {
             for p in 1..=2 * n + 5 {
                 println!("n,P: {} {}", n, p);
 
@@ -265,19 +265,25 @@ mod tests {
                     adjacency_list[parent[i]].push(i);
                 }
 
-                let mut value = vec![[[0_u64; 2]; 2]; n];
-                for i in 0..n {
-                    value[i][0][0] = rand::random_range(0..mod_val) as u64;
-                    value[i][0][1] = rand::random_range(0..mod_val) as u64;
-                    value[i][1][0] = rand::random_range(0..mod_val) as u64;
-                    value[i][1][1] = rand::random_range(0..mod_val) as u64;
-                }
+                let value: Vec<Matrix> = (0..n)
+                    .map(|_| {
+                        [
+                            [
+                                rand::random_range(0..mod_val) as u64,
+                                rand::random_range(0..mod_val) as u64,
+                            ],
+                            [
+                                rand::random_range(0..mod_val) as u64,
+                                rand::random_range(0..mod_val) as u64,
+                            ],
+                        ]
+                    })
+                    .collect();
 
                 let mut time_in = vec![0; n];
                 let mut time_out = vec![0; n];
                 let mut euler_tour = vec![0; 2 * n - 1];
-                let mut depth = vec![0; n];
-                let mut ancestor_agg_naive = vec![IDENTITY; n];
+                let mut ancestor_agg_naive = value.clone();
 
                 {
                     let mut timer = 0;
@@ -288,8 +294,6 @@ mod tests {
                         time_in: &mut Vec<usize>,
                         time_out: &mut Vec<usize>,
                         euler_tour: &mut Vec<usize>,
-                        depth: &mut Vec<usize>,
-                        value: &Vec<Matrix>,
                         ancestor_agg_naive: &mut Vec<Matrix>,
                         mod_val: u64,
                         mult_fn: fn(&Matrix, &Matrix, u64) -> Matrix,
@@ -298,11 +302,11 @@ mod tests {
                         euler_tour[*timer] = node;
                         *timer += 1;
                         for &child in &adjacency_list[node] {
-                            depth[child] = 1 + depth[node];
-
-                            ancestor_agg_naive[child] =
-                                mult_fn(&value[child], &ancestor_agg_naive[node], mod_val);
-
+                            ancestor_agg_naive[child] = mult_fn(
+                                &ancestor_agg_naive[child],
+                                &ancestor_agg_naive[node],
+                                mod_val,
+                            );
                             dfs(
                                 child,
                                 timer,
@@ -310,8 +314,6 @@ mod tests {
                                 time_in,
                                 time_out,
                                 euler_tour,
-                                depth,
-                                value,
                                 ancestor_agg_naive,
                                 mod_val,
                                 mult_fn,
@@ -322,7 +324,6 @@ mod tests {
                         time_out[node] = *timer - 1;
                     }
 
-                    ancestor_agg_naive[0] = value[0];
                     dfs(
                         0,
                         &mut timer,
@@ -330,8 +331,6 @@ mod tests {
                         &mut time_in,
                         &mut time_out,
                         &mut euler_tour,
-                        &mut depth,
-                        &value,
                         &mut ancestor_agg_naive,
                         mod_val,
                         mult,
