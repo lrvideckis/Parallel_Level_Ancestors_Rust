@@ -3,6 +3,9 @@ use rayon::iter::once;
 use rayon::prelude::*;
 use rayon_scan::ScanParallelIterator;
 
+// On Finding Lowest Common Ancestors: Simplification and Parallelization
+// Authors: Baruch Schieber and Uzi Vishkin
+
 pub struct Method1 {
     parent: Vec<usize>,
     level: Vec<usize>,
