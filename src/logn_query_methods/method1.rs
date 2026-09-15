@@ -9,9 +9,9 @@ use rayon_scan::ScanParallelIterator;
 pub struct Method1 {
     parent: Vec<usize>,
     level: Vec<usize>,
-    inlabel: Vec<usize>,
+    pub inlabel: Vec<usize>,
     head: Vec<usize>,
-    ascendant: Vec<usize>,
+    pub ascendant: Vec<usize>,
     path: Vec<usize>,
     head_to_start: Vec<usize>,
 }
