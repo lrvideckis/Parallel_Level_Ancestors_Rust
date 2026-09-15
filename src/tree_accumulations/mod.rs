@@ -1,2 +1,2 @@
-pub mod ancestors_associative;
-pub mod subtree_commutative_associative_idempotent;
+pub mod ancestors_matrix_product;
+pub mod subtree_max;

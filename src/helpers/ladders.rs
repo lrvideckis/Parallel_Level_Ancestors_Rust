@@ -1,5 +1,5 @@
 use crate::logn_query_methods::binary_lifting::BinaryLifting;
-use crate::tree_accumulations::subtree_commutative_associative_idempotent::subtree_commutative_associative_idempotent;
+use crate::tree_accumulations::subtree_max::subtree_commutative_associative_idempotent;
 use paradis_core::{BoundedParAccess, IntoParAccess};
 use rayon::iter::once;
 use rayon::prelude::*;
