@@ -36,27 +36,23 @@ impl Variation3 {
 
         let ladders = Ladders::new(parent, level, time_in, time_out, pre_order, p);
 
-        let block_size = (n + 1).div_ceil(p);
+        let block_size = n.div_ceil(p);
         let mut jump: Vec<Vec<usize>> = vec![vec![]; n];
 
         jump.par_chunks_mut(block_size)
             .enumerate()
-            .for_each(|(chunk_idx, chunk)| {
-                for (j_idx, item) in chunk.iter_mut().enumerate() {
-                    let i = chunk_idx * block_size + j_idx;
-
-                    let num_jumps = 2 + (i + 1).trailing_zeros() as usize;
-                    item.reserve(num_jumps);
-
-                    let mut prev_jump = pre_order[i];
-                    let target_node_level = level[pre_order[i]];
-
-                    for j in 0..num_jumps {
-                        let anc_d = target_node_level.saturating_sub(1usize << j);
-                        let dist = level[prev_jump].saturating_sub(anc_d);
-
-                        prev_jump = ladders.kth_parent(prev_jump, dist);
-                        item.push(prev_jump);
+            .for_each(|(i, chunk)| {
+                for (j, item) in chunk.iter_mut().enumerate() {
+                    let original_idx = i * block_size + j;
+                    let mut u = parent[pre_order[original_idx]];
+                    item.push(u);
+                    let mut k = 1;
+                    while k <= (original_idx + 1).isolate_lowest_one() {
+                        u = ladders.kth_parent(u, std::cmp::min(k, level[u]));
+                        //push even when u goes above root so that we can verify total number of jump
+                        //pointers
+                        item.push(u);
+                        k *= 2;
                     }
                 }
             });
