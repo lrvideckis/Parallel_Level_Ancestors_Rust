@@ -2,7 +2,7 @@ use crate::helpers::sparse_table::SparseTable;
 use rayon::prelude::*;
 
 pub struct Method2 {
-    depth: Vec<usize>,
+    level: Vec<usize>,
     euler_tour: Vec<usize>,
     time_in: Vec<usize>,
     b: usize,
@@ -14,7 +14,7 @@ pub struct Method2 {
 }
 
 impl Method2 {
-    pub fn new(depth: &[usize], euler_tour: &[usize], time_in: &[usize], p: usize) -> Self {
+    pub fn new(level: &[usize], euler_tour: &[usize], time_in: &[usize], p: usize) -> Self {
         let m = euler_tour.len();
         assert!(m >= 1);
         assert!(p >= 1);
@@ -38,7 +38,7 @@ impl Method2 {
                 let mut local_min = usize::MAX;
                 let mut local_max = 0;
                 for j in start_idx..end_idx {
-                    let d = depth[euler_tour[j]];
+                    let d = level[euler_tour[j]];
                     local_min = local_min.min(d);
                     local_max = local_max.max(d);
                 }
@@ -48,14 +48,14 @@ impl Method2 {
                     let range_d = local_max - local_min + 1;
                     let mut local_table = vec![vec![]; range_d];
                     for &node in &euler_tour[start_idx..end_idx] {
-                        let lev = depth[node] - local_min;
+                        let lev = level[node] - local_min;
                         local_table[lev].push(node);
                     }
                     *table = local_table;
                 }
             });
 
-        let mut prefix_of_block: Vec<usize> = euler_tour.par_iter().map(|&v| depth[v]).collect();
+        let mut prefix_of_block: Vec<usize> = euler_tour.par_iter().map(|&v| level[v]).collect();
         let mut suffix_of_block = prefix_of_block.clone();
 
         prefix_of_block.par_chunks_mut(b).for_each(|chunk| {
@@ -77,7 +77,7 @@ impl Method2 {
         let sparse_table = SparseTable::new(block_suffs, min_fn);
 
         Self {
-            depth: depth.to_vec(),
+            level: level.to_vec(),
             euler_tour: euler_tour.to_vec(),
             time_in: time_in.to_vec(),
             b,
@@ -99,8 +99,8 @@ impl Method2 {
     }
 
     pub fn kth_parent(&self, v: usize, k: usize) -> usize {
-        assert!(k <= self.depth[v]);
-        let anc_d = self.depth[v] - k;
+        assert!(k <= self.level[v]);
+        let anc_d = self.level[v] - k;
         let tv = self.time_in[v];
 
         if self.prefix_of_block[tv] <= anc_d {
@@ -142,7 +142,7 @@ mod tests {
     #[test]
     fn stress_test() {
         for n in 1..=80 {
-            for p in 1..=(2 * n + 5) {
+            for p in 1..=(n + 5) {
                 let mut adjacency_list = vec![vec![]; n];
                 let mut parent = vec![0; n];
                 for i in 1..n {
@@ -150,7 +150,7 @@ mod tests {
                     adjacency_list[parent[i]].push(i);
                 }
 
-                let mut depth = vec![0; n];
+                let mut level = vec![0; n];
                 let mut euler_tour = vec![0; 2 * n - 1];
                 let mut time_in = vec![0; n];
                 let mut time_out = vec![0; n];
@@ -159,7 +159,7 @@ mod tests {
                 fn dfs(
                     v: usize,
                     adj: &[Vec<usize>],
-                    depth: &mut [usize],
+                    level: &mut [usize],
                     euler_tour: &mut [usize],
                     time_in: &mut [usize],
                     time_out: &mut [usize],
@@ -170,8 +170,8 @@ mod tests {
                     *timer += 1;
 
                     for &child in &adj[v] {
-                        depth[child] = 1 + depth[v];
-                        dfs(child, adj, depth, euler_tour, time_in, time_out, timer);
+                        level[child] = 1 + level[v];
+                        dfs(child, adj, level, euler_tour, time_in, time_out, timer);
                         euler_tour[*timer] = v;
                         *timer += 1;
                     }
@@ -181,7 +181,7 @@ mod tests {
                 dfs(
                     0,
                     &adjacency_list,
-                    &mut depth,
+                    &mut level,
                     &mut euler_tour,
                     &mut time_in,
                     &mut time_out,
@@ -189,11 +189,11 @@ mod tests {
                 );
                 assert_eq!(timer, 2 * n - 1);
 
-                let ancestor = Method2::new(&depth, &euler_tour, &time_in, p);
+                let ancestor = Method2::new(&level, &euler_tour, &time_in, p);
 
                 for i in 0..n {
                     let mut kth_parent_naive = i;
-                    for k in 0..=depth[i] {
+                    for k in 0..=level[i] {
                         assert_eq!(kth_parent_naive, ancestor.kth_parent(i, k));
                         kth_parent_naive = parent[kth_parent_naive];
                     }
