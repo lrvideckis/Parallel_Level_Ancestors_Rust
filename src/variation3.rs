@@ -34,24 +34,18 @@ impl Variation3 {
             et_time_out,
         );
 
-        let mut pre_tmp = pre_order.to_vec();
-        pre_tmp.remove(0);
-
-        let ladders = Ladders::new(parent, level, time_in, time_out, &pre_tmp, p);
+        let ladders = Ladders::new(parent, level, time_in, time_out, pre_order, p);
 
         let block_size = (n + 1).div_ceil(p);
-        let mut jump: Vec<Vec<usize>> = vec![vec![]; n + 1];
+        let mut jump: Vec<Vec<usize>> = vec![vec![]; n];
 
         jump.par_chunks_mut(block_size)
             .enumerate()
             .for_each(|(chunk_idx, chunk)| {
                 for (j_idx, item) in chunk.iter_mut().enumerate() {
                     let i = chunk_idx * block_size + j_idx;
-                    if i == 0 {
-                        continue;
-                    }
 
-                    let num_jumps = 2 + (i).trailing_zeros() as usize;
+                    let num_jumps = 2 + (i + 1).trailing_zeros() as usize;
                     item.reserve(num_jumps);
 
                     let mut prev_jump = pre_order[i];
@@ -88,8 +82,8 @@ impl Variation3 {
             let i = k.ilog2();
             let j = (self.method1.ascendant[v] & (1usize << i).wrapping_neg()).trailing_zeros();
             let la_bt = (self.method1.inlabel[v] & (1usize << j).wrapping_neg()) | (1 << j);
-            let dist_to_go = self.level[self.jump[la_bt][0]] - (self.level[v] - k) + 1;
-            let jump_node = self.jump[la_bt][dist_to_go.ilog2() as usize];
+            let dist_to_go = self.level[self.jump[la_bt - 1][0]] - (self.level[v] - k) + 1;
+            let jump_node = self.jump[la_bt - 1][dist_to_go.ilog2() as usize];
             self.ladders
                 .kth_parent(jump_node, self.level[jump_node] - (self.level[v] - k))
         }
@@ -115,7 +109,7 @@ mod tests {
 
                 let mut time_in = vec![0; n];
                 let mut time_out = vec![0; n];
-                let mut pre_order = vec![0; n + 1];
+                let mut pre_order = vec![0; n];
                 let mut euler_tour = vec![0; 2 * n];
                 let mut et_time_in = vec![0; n];
                 let mut et_time_out = vec![0; n];
@@ -141,8 +135,8 @@ mod tests {
                         *timer_euler_tour += 1;
 
                         time_in[node] = *timer;
-                        *timer += 1;
                         pre_order[*timer] = node;
+                        *timer += 1;
 
                         et_time_in[node] = *et_timer;
                         *et_timer += 1;

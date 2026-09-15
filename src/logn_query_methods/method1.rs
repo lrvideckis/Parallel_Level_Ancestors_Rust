@@ -44,7 +44,7 @@ impl Method1 {
         let mut head_to_start = vec![0; n + 1];
         let access = head_to_start.into_par_access();
         (0..n).into_par_iter().for_each(|v| {
-            if pre_order[inlabel[v]] == v {
+            if pre_order[inlabel[v] - 1] == v {
                 let head_v = head[inlabel[v]];
                 let val = level[v] - level[head_v] + 1;
                 unsafe {
@@ -166,7 +166,7 @@ mod tests {
                 level[i] = 1 + level[parent[i]];
                 adjacency_list[parent[i]].push(i);
             }
-            let mut pre_order = vec![0; n + 1];
+            let mut pre_order = vec![0; n];
             let mut time_in = vec![0; n];
             let mut time_out = vec![0; n];
             let mut et_time_in = vec![0; n];
@@ -185,8 +185,8 @@ mod tests {
                 et_timer: &mut usize,
             ) {
                 time_in[v] = *timer;
-                *timer += 1;
                 pre_order[*timer] = v;
+                *timer += 1;
 
                 et_time_in[v] = *et_timer;
                 *et_timer += 1;
