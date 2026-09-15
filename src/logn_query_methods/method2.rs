@@ -37,22 +37,19 @@ impl Method2 {
 
                 let mut local_min = usize::MAX;
                 let mut local_max = 0;
-                for j in start_idx..end_idx {
-                    let d = level[euler_tour[j]];
+                for &node in &euler_tour[start_idx..end_idx] {
+                    let d = level[node];
                     local_min = local_min.min(d);
                     local_max = local_max.max(d);
                 }
                 *min_lvl = local_min;
 
-                if local_min != usize::MAX {
-                    let range_d = local_max - local_min + 1;
-                    let mut local_table = vec![vec![]; range_d];
-                    for &node in &euler_tour[start_idx..end_idx] {
-                        let lev = level[node] - local_min;
-                        local_table[lev].push(node);
-                    }
-                    *table = local_table;
+                let mut local_table = vec![vec![]; local_max - local_min + 1];
+                for &node in &euler_tour[start_idx..end_idx] {
+                    let lev = level[node] - local_min;
+                    local_table[lev].push(node);
                 }
+                *table = local_table;
             });
 
         let mut prefix_of_block: Vec<usize> = euler_tour.par_iter().map(|&v| level[v]).collect();
@@ -70,8 +67,9 @@ impl Method2 {
             }
         });
 
-        let num_blocks = m.div_ceil(b);
-        let block_suffs: Vec<usize> = (0..num_blocks).map(|i| suffix_of_block[i * b]).collect();
+        let block_suffs: Vec<usize> = (0..p)
+            .map(|i| if i * b < m { suffix_of_block[i * b] } else { 0 })
+            .collect();
 
         let min_fn: fn(&usize, &usize) -> usize = |&x, &y| x.min(y);
         let sparse_table = SparseTable::new(block_suffs, min_fn);
