@@ -8,6 +8,18 @@ Note about parallel complexity: the paper assumes PRAM model where something lik
 
 ---
 
+Note about parallel list ranking: The paper assumes the tree is given as an edge list where for every node u, the set of edges (u <-> some child of u) form a subarray in the edge list. Then parallel list ranking can calculate:
+
+- a pre order traversal
+- arrays time_in, time_out such that subarray [time_in[u], time_out[u]) of pre_order corresponds to u's subtree
+- level a.k.a. depth
+- euler tour
+- arrays time_in, time_out such that subarray [et_time_in[u], et_time_out[u]) of euler_tour corresponds to u's subtree
+
+I chose not to implement parallel list ranking as it seems rather complicated. Instead these arrays are calculated naively in the tests as needed.
+ 
+---
+
 Note about use of unsafe: Consider the following problem: a permutation of 0..=n-1 is stored in p. Calculate the inverse permutation in p_inv. Sequentially it is trivial:
 
 ```
