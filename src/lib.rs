@@ -1,4 +1,5 @@
 #![deny(warnings)]
+pub mod hagerup;
 pub mod helpers;
 pub mod logn_query_methods;
 pub mod tree_accumulations;
