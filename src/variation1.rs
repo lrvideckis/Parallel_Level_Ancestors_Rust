@@ -24,7 +24,9 @@ impl Variation1 {
         let n = parent.len();
         assert!(n >= 1 && p >= 1);
 
-        let ladders = Ladders::new(parent, level, time_in, time_out, pre_order, p);
+        let ladders = Ladders::new(parent, level, time_in, time_out, pre_order, p, |len| {
+            2 * len
+        });
 
         let mut jump: Vec<[usize; 2]> = vec![[0, 0]; 2 * n];
         let access = jump.into_par_access();

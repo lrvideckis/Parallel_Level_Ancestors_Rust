@@ -14,14 +14,18 @@ pub struct Ladders {
 }
 
 impl Ladders {
-    pub fn new(
+    pub fn new<F>(
         parent: &[usize],
         level: &[usize],
         time_in: &[usize],
         time_out: &[usize],
         pre_order: &[usize],
         p: usize,
-    ) -> Self {
+        ladder_len: F,
+    ) -> Self
+    where
+        F: Fn(usize) -> usize + Sync + Send,
+    {
         let n = parent.len();
         assert!(n >= 1 && p >= 1);
 
@@ -43,7 +47,7 @@ impl Ladders {
         (0..n).into_par_iter().for_each(|i| {
             if parent[i] == i || deepest_leaf[parent[i]] != deepest_leaf[i] {
                 let idx = deepest_leaf[i];
-                let val = 2 * (level[deepest_leaf[i]] - level[i] + 1);
+                let val = ladder_len(level[deepest_leaf[i]] - level[i] + 1);
                 unsafe {
                     *access.get_unsync(idx) = val;
                 }
@@ -51,14 +55,14 @@ impl Ladders {
         });
         let leaf_to_size = leaf_to_size;
 
-        assert_eq!(leaf_to_size.iter().sum::<usize>(), 2 * n);
+        let total_size: usize = leaf_to_size.par_iter().sum();
 
         let leaf_to_start: Vec<usize> = once(0)
             .chain(leaf_to_size.par_iter().cloned())
             .scan(|a, b| *a + *b, 0)
             .collect();
 
-        let mut ladder_to_start = vec![0; 2 * n + 1];
+        let mut ladder_to_start = vec![0; total_size + 1];
         let access = ladder_to_start.into_par_access();
         (0..n).into_par_iter().for_each(|i| {
             if deepest_leaf[i] == i {
@@ -74,9 +78,9 @@ impl Ladders {
             .into_par_iter()
             .scan(|a, b| *a + *b, 0)
             .collect();
-        assert_eq!(ladder_to_start[2 * n], 2 * n);
+        assert_eq!(ladder_to_start[total_size], total_size);
 
-        let mut ladder = vec![usize::MAX; 2 * n];
+        let mut ladder = vec![usize::MAX; total_size];
         let access = ladder.into_par_access();
         (0..n).into_par_iter().for_each(|i| {
             if deepest_leaf[i] == i {
@@ -89,7 +93,7 @@ impl Ladders {
 
         let jump_pointers = BinaryLifting::new(parent, level, p);
 
-        let block_size = (2 * n).div_ceil(p);
+        let block_size = total_size.div_ceil(p);
 
         let ladder_temp = ladder.clone();
         ladder
@@ -175,7 +179,10 @@ mod tests {
                     );
                 }
 
-                let ladder = Ladders::new(&parent, &level, &time_in, &time_out, &pre_order, p);
+                let ladder =
+                    Ladders::new(&parent, &level, &time_in, &time_out, &pre_order, p, |len| {
+                        2 * len
+                    });
                 for i in 0..n {
                     assert!(ladder.kth_parent(i, 0) == i);
                     if i > 0 {

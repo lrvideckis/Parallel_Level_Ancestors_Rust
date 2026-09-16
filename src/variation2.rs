@@ -23,7 +23,9 @@ impl Variation2 {
         let n = parent.len();
         assert!(n >= 1 && p >= 1);
 
-        let ladders = Ladders::new(parent, level, time_in, time_out, pre_order, p);
+        let ladders = Ladders::new(parent, level, time_in, time_out, pre_order, p, |len| {
+            2 * len
+        });
 
         let block_size = (2 * n).div_ceil(p);
         let mut jump: Vec<Vec<usize>> = vec![vec![]; 2 * n];

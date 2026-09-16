@@ -34,7 +34,9 @@ impl Variation3 {
             et_time_out,
         );
 
-        let ladders = Ladders::new(parent, level, time_in, time_out, pre_order, p);
+        let ladders = Ladders::new(parent, level, time_in, time_out, pre_order, p, |len| {
+            2 * len
+        });
 
         let block_size = n.div_ceil(p);
         let mut jump: Vec<Vec<usize>> = vec![vec![]; n];
