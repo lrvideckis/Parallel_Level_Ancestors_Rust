@@ -4,7 +4,7 @@ use rayon::prelude::*;
 
 pub struct Variation1 {
     level: Vec<usize>,
-    euler_tour_index: Vec<usize>,
+    et_time_in: Vec<usize>,
     jump: Vec<[usize; 2]>,
     ladders: Ladders,
 }
@@ -18,7 +18,7 @@ impl Variation1 {
         time_out: &[usize],
         pre_order: &[usize],
         euler_tour: &[usize],
-        euler_tour_index: &[usize],
+        et_time_in: &[usize],
         p: usize,
     ) -> Self {
         let n = parent.len();
@@ -73,7 +73,7 @@ impl Variation1 {
 
         Self {
             level: level.to_vec(),
-            euler_tour_index: euler_tour_index.to_vec(),
+            et_time_in: et_time_in.to_vec(),
             jump,
             ladders,
         }
@@ -84,7 +84,7 @@ impl Variation1 {
         if k == 0 {
             v
         } else {
-            let i = self.euler_tour_index[v];
+            let i = self.et_time_in[v];
             let j = k.ilog2();
             let la_bt = (i & (1_usize << j).wrapping_neg()) | (1 << j);
             assert!(i.abs_diff(la_bt) <= k);
@@ -120,6 +120,7 @@ mod tests {
                 let mut time_out = vec![0; n];
                 let mut pre_order = vec![0; n];
                 let mut euler_tour = vec![0; 2 * n];
+                let mut et_time_in = vec![0; n];
 
                 {
                     let mut timer = 0;
@@ -132,9 +133,11 @@ mod tests {
                         time_out: &mut [usize],
                         pre_order: &mut [usize],
                         euler_tour: &mut [usize],
+                        et_time_in: &mut [usize],
                         adjacency_list: &[Vec<usize>],
                     ) {
                         euler_tour[*timer_euler_tour] = node;
+                        et_time_in[node] = *timer_euler_tour;
                         *timer_euler_tour += 1;
                         time_in[node] = *timer;
                         pre_order[*timer] = node;
@@ -148,6 +151,7 @@ mod tests {
                                 time_out,
                                 pre_order,
                                 euler_tour,
+                                et_time_in,
                                 adjacency_list,
                             );
                             euler_tour[*timer_euler_tour] = node;
@@ -163,13 +167,9 @@ mod tests {
                         &mut time_out,
                         &mut pre_order,
                         &mut euler_tour,
+                        &mut et_time_in,
                         &adjacency_list,
                     );
-                }
-
-                let mut euler_tour_index = vec![0; n];
-                for i in 1..2 * n {
-                    euler_tour_index[euler_tour[i]] = i;
                 }
 
                 let variation1 = Variation1::new(
@@ -179,7 +179,7 @@ mod tests {
                     &time_out,
                     &pre_order,
                     &euler_tour,
-                    &euler_tour_index,
+                    &et_time_in,
                     p,
                 );
                 for i in 0..n {

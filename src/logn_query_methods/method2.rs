@@ -4,7 +4,7 @@ use rayon::prelude::*;
 pub struct Method2 {
     level: Vec<usize>,
     euler_tour: Vec<usize>,
-    time_in: Vec<usize>,
+    et_time_in: Vec<usize>,
     b: usize,
     block_min_level: Vec<usize>,
     block_table: Vec<Vec<Vec<usize>>>,
@@ -14,7 +14,7 @@ pub struct Method2 {
 }
 
 impl Method2 {
-    pub fn new(level: &[usize], euler_tour: &[usize], time_in: &[usize], p: usize) -> Self {
+    pub fn new(level: &[usize], euler_tour: &[usize], et_time_in: &[usize], p: usize) -> Self {
         let m = euler_tour.len();
         assert!(m >= 1);
         assert!(p >= 1);
@@ -77,7 +77,7 @@ impl Method2 {
         Self {
             level: level.to_vec(),
             euler_tour: euler_tour.to_vec(),
-            time_in: time_in.to_vec(),
+            et_time_in: et_time_in.to_vec(),
             b,
             block_min_level,
             block_table,
@@ -99,7 +99,7 @@ impl Method2 {
     pub fn kth_parent(&self, v: usize, k: usize) -> usize {
         assert!(k <= self.level[v]);
         let anc_d = self.level[v] - k;
-        let tv = self.time_in[v];
+        let tv = self.et_time_in[v];
 
         if self.prefix_of_block[tv] <= anc_d {
             let block_id = tv / self.b;
@@ -110,7 +110,7 @@ impl Method2 {
             let mut end = nodes_on_level.len();
             while start + 1 < end {
                 let mid = (start + end) / 2;
-                if self.time_in[nodes_on_level[mid]] <= tv {
+                if self.et_time_in[nodes_on_level[mid]] <= tv {
                     start = mid;
                 } else {
                     end = mid;
@@ -150,8 +150,7 @@ mod tests {
 
                 let mut level = vec![0; n];
                 let mut euler_tour = vec![0; 2 * n - 1];
-                let mut time_in = vec![0; n];
-                let mut time_out = vec![0; n];
+                let mut et_time_in = vec![0; n];
                 let mut timer = 0;
 
                 fn dfs(
@@ -159,21 +158,19 @@ mod tests {
                     adj: &[Vec<usize>],
                     level: &mut [usize],
                     euler_tour: &mut [usize],
-                    time_in: &mut [usize],
-                    time_out: &mut [usize],
+                    et_time_in: &mut [usize],
                     timer: &mut usize,
                 ) {
-                    time_in[v] = *timer;
+                    et_time_in[v] = *timer;
                     euler_tour[*timer] = v;
                     *timer += 1;
 
                     for &child in &adj[v] {
                         level[child] = 1 + level[v];
-                        dfs(child, adj, level, euler_tour, time_in, time_out, timer);
+                        dfs(child, adj, level, euler_tour, et_time_in, timer);
                         euler_tour[*timer] = v;
                         *timer += 1;
                     }
-                    time_out[v] = *timer;
                 }
 
                 dfs(
@@ -181,13 +178,12 @@ mod tests {
                     &adjacency_list,
                     &mut level,
                     &mut euler_tour,
-                    &mut time_in,
-                    &mut time_out,
+                    &mut et_time_in,
                     &mut timer,
                 );
                 assert_eq!(timer, 2 * n - 1);
 
-                let ancestor = Method2::new(&level, &euler_tour, &time_in, p);
+                let ancestor = Method2::new(&level, &euler_tour, &et_time_in, p);
 
                 for i in 0..n {
                     let mut kth_parent_naive = i;

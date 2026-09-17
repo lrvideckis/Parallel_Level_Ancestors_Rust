@@ -4,7 +4,7 @@ use rayon::prelude::*;
 
 pub struct Hagerup {
     level: Vec<usize>,
-    euler_tour_index: Vec<usize>,
+    et_time_in: Vec<usize>,
     jump: Vec<usize>,
     ladders: Ladders,
     kappa: usize,
@@ -19,7 +19,7 @@ impl Hagerup {
         time_out: &[usize],
         pre_order: &[usize],
         euler_tour: &[usize],
-        euler_tour_index: &[usize],
+        et_time_in: &[usize],
         p: usize,
         kappa: usize,
     ) -> Self {
@@ -63,7 +63,7 @@ impl Hagerup {
 
         Self {
             level: level.to_vec(),
-            euler_tour_index: euler_tour_index.to_vec(),
+            et_time_in: et_time_in.to_vec(),
             jump,
             ladders,
             kappa,
@@ -75,7 +75,7 @@ impl Hagerup {
         let anc_d = self.level[v] - k;
         if k >= (self.kappa + 1) {
             let l = 1_usize << (k / (self.kappa + 1)).ilog2();
-            v = self.jump[(self.euler_tour_index[v] & l.wrapping_neg()) | l];
+            v = self.jump[(self.et_time_in[v] & l.wrapping_neg()) | l];
         }
         self.ladders.kth_parent(v, self.level[v] - anc_d)
     }
@@ -101,6 +101,7 @@ mod tests {
             let mut time_out = vec![0; n];
             let mut pre_order = vec![0; n];
             let mut euler_tour = vec![0; 2 * n];
+            let mut et_time_in = vec![0; n];
 
             {
                 let mut timer = 0;
@@ -113,9 +114,11 @@ mod tests {
                     time_out: &mut [usize],
                     pre_order: &mut [usize],
                     euler_tour: &mut [usize],
+                    et_time_in: &mut [usize],
                     adjacency_list: &[Vec<usize>],
                 ) {
                     euler_tour[*timer_euler_tour] = node;
+                    et_time_in[node] = *timer_euler_tour;
                     *timer_euler_tour += 1;
                     time_in[node] = *timer;
                     pre_order[*timer] = node;
@@ -129,6 +132,7 @@ mod tests {
                             time_out,
                             pre_order,
                             euler_tour,
+                            et_time_in,
                             adjacency_list,
                         );
                         euler_tour[*timer_euler_tour] = node;
@@ -144,13 +148,9 @@ mod tests {
                     &mut time_out,
                     &mut pre_order,
                     &mut euler_tour,
+                    &mut et_time_in,
                     &adjacency_list,
                 );
-            }
-
-            let mut euler_tour_index = vec![0; n];
-            for i in 1..2 * n {
-                euler_tour_index[euler_tour[i]] = i;
             }
 
             for kappa in 1..=7 {
@@ -162,7 +162,7 @@ mod tests {
                         &time_out,
                         &pre_order,
                         &euler_tour,
-                        &euler_tour_index,
+                        &et_time_in,
                         p,
                         kappa,
                     );
