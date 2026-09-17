@@ -8,9 +8,9 @@ pub fn ancestors_associative<T, F>(
     identity: T,
     op: F,
     parent: &[usize],
-    time_in: &[usize],
-    time_out: &[usize],
     euler_tour: &[usize],
+    et_time_in: &[usize],
+    et_time_out: &[usize],
     p: usize,
 ) -> Vec<T>
 where
@@ -31,7 +31,7 @@ where
         let end_idx = std::cmp::min((i + 1) * b, 2 * n - 1);
         for (j, &node) in euler_tour.iter().enumerate().take(end_idx).skip(start_idx) {
             let par = parent[node];
-            if time_in[node] == j && par != node && time_in[par] / b == time_out[par] / b {
+            if et_time_in[node] == j && par != node && et_time_in[par] / b == et_time_out[par] / b {
                 unsafe {
                     let node_ptr = access.get_unsync(node);
                     let par_ptr = access.get_unsync(par);
@@ -47,8 +47,8 @@ where
         let pref_access = prefix_agg.into_par_access();
         let suf_access = suffix_agg.into_par_access();
         (0..n).into_par_iter().for_each(|i| {
-            let l = time_in[i];
-            let r = time_out[i];
+            let l = et_time_in[i];
+            let r = et_time_out[i];
             assert!(l <= r);
             if l / b == r / b {
                 return;
@@ -69,7 +69,7 @@ where
                 let mut running_agg = identity.clone();
                 for j in start_idx..end_idx {
                     let sub_node = euler_tour[j];
-                    if time_in[sub_node] == j {
+                    if et_time_in[sub_node] == j {
                         unsafe {
                             let node_ptr = access.get_unsync(sub_node);
                             *node_ptr = op(&*node_ptr, &running_agg);
@@ -83,7 +83,7 @@ where
                 for j in (start_idx..end_idx).rev() {
                     running_agg = op(&prefix_agg[j], &running_agg);
                     let sub_node = euler_tour[j];
-                    if time_in[sub_node] == j {
+                    if et_time_in[sub_node] == j {
                         unsafe {
                             let node_ptr = access.get_unsync(sub_node);
                             *node_ptr = op(&*node_ptr, &running_agg);
@@ -107,8 +107,8 @@ where
 
             for j in (start_idx..end_idx).rev() {
                 let node = euler_tour[j];
-                let r = time_out[node];
-                if time_in[node] == j {
+                let r = et_time_out[node];
+                if et_time_in[node] == j {
                     let block_l = i + 1;
                     let block_r = r / b;
                     if block_l < block_r {
@@ -133,8 +133,8 @@ where
             }
             let end_idx = std::cmp::min((i + 1) * b, 2 * n - 1);
             for (j, &node) in euler_tour.iter().enumerate().take(end_idx).skip(start_idx) {
-                let l = time_in[node];
-                let r = time_out[node];
+                let l = et_time_in[node];
+                let r = et_time_out[node];
                 if r == j {
                     let block_l = l / b + 1;
                     let block_r = i;
@@ -176,7 +176,7 @@ where
             }
             let end_idx = std::cmp::min((i + 1) * b, 2 * n - 1);
             for (j, &node) in euler_tour.iter().enumerate().take(end_idx).skip(start_idx) {
-                if time_in[node] == j {
+                if et_time_in[node] == j {
                     unsafe {
                         let node_ptr = access.get_unsync(node);
                         *node_ptr = op(&*node_ptr, &rmq_agg[i]);
@@ -236,8 +236,8 @@ mod tests {
                     })
                     .collect();
 
-                let mut time_in = vec![0; n];
-                let mut time_out = vec![0; n];
+                let mut et_time_in = vec![0; n];
+                let mut et_time_out = vec![0; n];
                 let mut euler_tour = vec![0; 2 * n - 1];
                 let mut ancestor_agg_naive = value.clone();
 
@@ -247,14 +247,14 @@ mod tests {
                         node: usize,
                         timer: &mut usize,
                         adjacency_list: &Vec<Vec<usize>>,
-                        time_in: &mut Vec<usize>,
-                        time_out: &mut Vec<usize>,
+                        et_time_in: &mut Vec<usize>,
+                        et_time_out: &mut Vec<usize>,
                         euler_tour: &mut Vec<usize>,
                         ancestor_agg_naive: &mut Vec<Matrix>,
                         mod_val: u64,
                         mult_fn: fn(&Matrix, &Matrix, u64) -> Matrix,
                     ) {
-                        time_in[node] = *timer;
+                        et_time_in[node] = *timer;
                         euler_tour[*timer] = node;
                         *timer += 1;
                         for &child in &adjacency_list[node] {
@@ -267,8 +267,8 @@ mod tests {
                                 child,
                                 timer,
                                 adjacency_list,
-                                time_in,
-                                time_out,
+                                et_time_in,
+                                et_time_out,
                                 euler_tour,
                                 ancestor_agg_naive,
                                 mod_val,
@@ -277,15 +277,15 @@ mod tests {
                             euler_tour[*timer] = node;
                             *timer += 1;
                         }
-                        time_out[node] = *timer - 1;
+                        et_time_out[node] = *timer - 1;
                     }
 
                     dfs(
                         0,
                         &mut timer,
                         &adjacency_list,
-                        &mut time_in,
-                        &mut time_out,
+                        &mut et_time_in,
+                        &mut et_time_out,
                         &mut euler_tour,
                         &mut ancestor_agg_naive,
                         mod_val,
@@ -295,9 +295,9 @@ mod tests {
                 }
 
                 for i in 0..n {
-                    assert_eq!(euler_tour[time_in[i]], i);
-                    assert_eq!(euler_tour[time_out[i]], i);
-                    assert!(time_in[i] <= time_out[i]);
+                    assert_eq!(euler_tour[et_time_in[i]], i);
+                    assert_eq!(euler_tour[et_time_out[i]], i);
+                    assert!(et_time_in[i] <= et_time_out[i]);
                 }
 
                 let ancestor_agg = ancestors_associative(
@@ -305,9 +305,9 @@ mod tests {
                     IDENTITY,
                     |a, b| mult(a, b, mod_val),
                     &parent,
-                    &time_in,
-                    &time_out,
                     &euler_tour,
+                    &et_time_in,
+                    &et_time_out,
                     p,
                 );
 
