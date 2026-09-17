@@ -3,7 +3,7 @@ use paradis_core::{BoundedParAccess, IntoParAccess};
 use rayon::prelude::*;
 
 #[allow(clippy::too_many_arguments)]
-pub fn ancestors_associative<T, F>(
+pub fn ancestors_commutative_associative_idempotent<T, F>(
     values: &[T],
     identity: T,
     op: F,
@@ -252,7 +252,7 @@ mod tests {
                     assert!(et_time_in[i] <= et_time_out[i]);
                 }
 
-                let ancestor_agg = ancestors_associative(
+                let ancestor_agg = ancestors_commutative_associative_idempotent(
                     &value,
                     i32::MIN,
                     |a, b| *a.max(b),
