@@ -102,6 +102,8 @@ impl Method2 {
         let tv = self.et_time_in[v];
 
         if self.prefix_of_block[tv] <= anc_d {
+            // in this case, you could naively walk up parent pointers in O(n/p)
+            assert!(self.level[v] - anc_d < self.b);
             let block_id = tv / self.b;
             let lev = anc_d - self.block_min_level[block_id];
             let nodes_on_level = &self.block_table[block_id][lev];
