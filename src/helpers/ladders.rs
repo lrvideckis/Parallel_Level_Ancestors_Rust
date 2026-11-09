@@ -62,24 +62,6 @@ impl Ladders {
             .scan(|a, b| *a + *b, 0)
             .collect();
 
-        let mut ladder_to_start = vec![0; total_size + 1];
-        let access = ladder_to_start.into_par_access();
-        (0..n).into_par_iter().for_each(|i| {
-            if deepest_leaf[i] == i {
-                let idx = leaf_to_start[i] + leaf_to_size[i];
-                let val = leaf_to_size[i];
-                unsafe {
-                    *access.get_unsync(idx) = val;
-                }
-            }
-        });
-
-        let ladder_to_start: Vec<usize> = ladder_to_start
-            .into_par_iter()
-            .scan(|a, b| *a + *b, 0)
-            .collect();
-        assert_eq!(ladder_to_start[total_size], total_size);
-
         let mut ladder = vec![usize::MAX; total_size];
         let access = ladder.into_par_access();
         (0..n).into_par_iter().for_each(|i| {
@@ -95,15 +77,19 @@ impl Ladders {
 
         let block_size = total_size.div_ceil(p);
 
-        let ladder_temp = ladder.clone();
         ladder
             .par_chunks_mut(block_size)
             .enumerate()
             .for_each(|(i, chunk)| {
                 let start_index = i * block_size;
-                let leaf = ladder_temp[ladder_to_start[start_index]];
-                let k = std::cmp::min(start_index - ladder_to_start[start_index], level[leaf]);
-                chunk[0] = jump_pointers.kth_parent(leaf, k);
+
+                if chunk[0] == usize::MAX {
+                    let leaf = leaf_to_start.partition_point(|&s| s <= start_index) - 1;
+
+                    let k = std::cmp::min(start_index - leaf_to_start[leaf], level[leaf]);
+                    chunk[0] = jump_pointers.kth_parent(leaf, k);
+                }
+
                 for j in 1..chunk.len() {
                     if chunk[j] == usize::MAX {
                         chunk[j] = parent[chunk[j - 1]];
